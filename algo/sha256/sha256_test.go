@@ -20,8 +20,8 @@ func equals(tb testing.TB, exp, act interface{}) {
 	}
 }
 
-func h(sum [32]byte) string {
-	return hex.EncodeToString(sum[:])
+func h(sum []byte) string {
+	return hex.EncodeToString(sum)
 }
 
 func b(s string) []byte {
@@ -37,6 +37,15 @@ func TestOne(t *testing.T) {
 	s := sha256.New()
 	s.Add(b("a"))
 	equals(t, "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb", h(s.Sum()))
+}
+
+func TestReset(t *testing.T) {
+	s := sha256.New()
+	s.Add(b("a"))
+	equals(t, "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb", h(s.Sum()))
+	s.Reset()
+	s.Add(b("b"))
+	equals(t, "3e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d", h(s.Sum()))
 }
 
 func TestString(t *testing.T) {

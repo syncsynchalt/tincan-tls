@@ -29,7 +29,19 @@ type Sha256 struct {
 }
 
 func New() *Sha256 {
-	return &Sha256{state: initialState}
+	s := Sha256{}
+	s.Reset()
+	return &s
+}
+
+func (s *Sha256) Reset() {
+	s.unprocessedLen = 0
+	copy(s.state[:], initialState[:])
+	s.addBits = 0
+}
+
+func (s *Sha256) BlockSize() int {
+	return 64
 }
 
 func (s *Sha256) Add(in []byte) {
@@ -153,7 +165,8 @@ func (s *Sha256) finalPad() {
 	s.unprocessedLen = 0
 }
 
-func (s *Sha256) Sum() (result [32]byte) {
+func (s *Sha256) Sum() []byte {
+	result := make([]byte, 32)
 	s.finalPad()
 	for i := 0; i < 8; i++ {
 		result[i*4+0] = byte(s.state[i] >> 24)
@@ -161,5 +174,5 @@ func (s *Sha256) Sum() (result [32]byte) {
 		result[i*4+2] = byte(s.state[i] >> 8)
 		result[i*4+3] = byte(s.state[i] >> 0)
 	}
-	return
+	return result
 }
