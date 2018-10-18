@@ -1,5 +1,7 @@
 # tincan-tls
 
+![Lover's Telephone](/images/tincan.png)
+
 This is an implementation of TLS 1.3 written from the various specifications (RFCs, etc).
 
 This implementation only implements enough of the protocol to be
