@@ -18,10 +18,10 @@ func generateSBox() []byte {
 	return box
 }
 
-// xxx change to lookup table
 func findInverse(b byte) byte {
 	// find the multiplicative inverse in GF(2^8) for reducing polynomial of x^8 + x^4 + x^3 + x + 1 (100011011b)
-	// uses brute-force method (slow)
+	// in other words, b * bi == 1
+	// uses brute-force method to find inverses (slow)
 	if b == 0 {
 		return 0
 	}
@@ -54,7 +54,7 @@ func rjmult(a, b byte) byte {
 		ascale++
 	}
 
-	// mod x^8 + x^4 + x^3 + x + 1 (aka reduce result)
+	// mod x^8 + x^4 + x^3 + x + 1 (reduces result to 8 bits)
 	for i := uint(15); i > 7; i-- {
 		if result&(1<<i) != 0 {
 			result = result ^ (0x11b << (i - 8))
@@ -65,14 +65,10 @@ func rjmult(a, b byte) byte {
 }
 
 func sboxAffine(b byte) byte {
+	isSet := func(i uint) bool { return (b & (1 << (i%8))) != 0 }
 	affineBit := func(i uint) bool {
-		ba := (b & (1 << i)) != 0
-		bb := (b & (1 << ((i + 4) % 8))) != 0
-		bc := (b & (1 << ((i + 5) % 8))) != 0
-		bd := (b & (1 << ((i + 6) % 8))) != 0
-		be := (b & (1 << ((i + 7) % 8))) != 0
 		c := (0x63 & (1 << i)) != 0
-		return ba != bb != bc != bd != be != c
+		return isSet(i) != isSet(i+4) != isSet(i+5) != isSet(i+6) != isSet(i+7) != c
 	}
 	bp := byte(0)
 	for i := uint(0); i < 8; i++ {
