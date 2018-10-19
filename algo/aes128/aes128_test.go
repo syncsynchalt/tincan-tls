@@ -176,4 +176,34 @@ func TestCipher(t *testing.T) {
 	w := keyExpansion(key)
 	cipher(in, out, w)
 	equals(t, e, out)
+
+	// repeat to ensure everything's intact
+	cipher(in, out, w)
+	equals(t, e, out)
+}
+
+func TestCipherIndependent(t *testing.T) {
+	key, _ := hex.DecodeString("000102030405060708090a0b0c0d0e0f")
+	in := []byte("abcdefghijklmnop")
+	e, _ := hex.DecodeString("d25363fc721337648a68f34abef3b405")
+
+	out := make([]byte, 16)
+	w := keyExpansion(key)
+	cipher(in, out, w)
+	equals(t, e, out)
+}
+
+func TestInterface(t *testing.T) {
+	key, _ := hex.DecodeString("000102030405060708090a0b0c0d0e0f")
+	e, _ := hex.DecodeString("d25363fc721337648a68f34abef3b405")
+
+	a := New128(key)
+	equals(t, 16, a.KeySize())
+	equals(t, 16, a.BlockSize())
+	out := a.Cipher([]byte("abcdefghijklmnop"))
+	equals(t, e, out)
+
+	e, _ = hex.DecodeString("8bd658946c56fee7598ce6e41544b92b")
+	out = a.Cipher([]byte("qrstuvwxyz012345"))
+	equals(t, e, out)
 }
