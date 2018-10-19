@@ -10,7 +10,7 @@ a web server and request a page, but the implementation itself should be
 robust.
 
 The algorithms are full of known issues such as attackable side channels and should
-not be used for real work.  They also prefer clarity over performance.
+not be used for real work.  They are also unoptimized and err on the side of clarity.
 
 ### Algorithms
 
