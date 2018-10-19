@@ -5,8 +5,17 @@
 
 This is an implementation of TLS 1.3 written from the various specifications (RFCs, etc).
 
-This implementation only implements enough of the protocol to be
-able to connect to a web server and request a page.
+We only implement enough of the protocol to be able to connect to
+a web server and request a page, but the implementation itself should be
+robust.
 
-The algorithms are full of known issues such as timing side channels and should
-not be used for real work.
+The algorithms are full of known issues such as attackable side channels and should
+not be used for real work.  They also prefer clarity over performance.
+
+### Algorithms
+
+The following algorithms were built for this implementation:
+
+* SHA-256
+* HMAC
+* AES-128
