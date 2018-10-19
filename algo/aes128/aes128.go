@@ -124,3 +124,73 @@ func subWord(w uint32) uint32 {
 func rotWord(w uint32) uint32 {
 	return (w << 8) | (w >> 24)
 }
+
+// w is the output of keyExpansion()
+func cipher(in, out []byte, w []uint32) {
+	if len(in) != 4*nb || len(in) != len(out) {
+		panic("incorrect blocksize in cipher")
+	}
+
+	state := out
+
+	copy(state, in)
+	addRoundKey(state, w[:nb])
+
+	for i := 1; i < nr; i++ {
+		subBytes(state)
+		shiftRows(state)
+		mixColumns(state)
+		addRoundKey(state, w[(i)*nb:(i+1)*nb])
+	}
+
+	subBytes(state)
+	shiftRows(state)
+	addRoundKey(state, w[nr*nb:(nr+1)*nb])
+}
+
+func subBytes(state []byte) {
+	for i := range state {
+		state[i] = sbox[state[i]]
+	}
+}
+
+func addRoundKey(state []byte, w []uint32) {
+	if len(state) != 4*len(w) {
+		panic("mismatch in state and w")
+	}
+	for i := range w {
+		state[i*4+0] ^= byte(w[i] >> 24)
+		state[i*4+1] ^= byte(w[i] >> 16)
+		state[i*4+2] ^= byte(w[i] >> 8)
+		state[i*4+3] ^= byte(w[i])
+	}
+}
+
+func shiftRows(state []byte) {
+	roll := func(col int) {
+		x := state[col]
+		for i := 0; i < nb-1; i++ {
+			state[col+4*i] = state[col+4*(i+1)]
+		}
+		state[col+4*(nb-1)] = x
+	}
+	for i := 1; i < nb; i++ {
+		for j := 0; j < i; j++ {
+			roll(i)
+		}
+	}
+}
+
+func mixColumns(state []byte) {
+	mix := func(s []byte) {
+		s0 := rjmult(2, s[0]) ^ rjmult(3, s[1]) ^ s[2] ^ s[3]
+		s1 := s[0] ^ rjmult(2, s[1]) ^ rjmult(3, s[2]) ^ s[3]
+		s2 := s[0] ^ s[1] ^ rjmult(2, s[2]) ^ rjmult(3, s[3])
+		s3 := rjmult(3, s[0]) ^ s[1] ^ s[2] ^ rjmult(2, s[3])
+		s[0], s[1], s[2], s[3] = s0, s1, s2, s3
+	}
+	mix(state[0:4])
+	mix(state[4:8])
+	mix(state[8:12])
+	mix(state[12:16])
+}

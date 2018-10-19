@@ -6,12 +6,24 @@ import (
 	"reflect"
 	"runtime"
 	"testing"
+
+	"encoding/hex"
 )
 
+// equals fails the test if exp is not equal to act.
 func equals(tb testing.TB, exp, act interface{}) {
 	if !reflect.DeepEqual(exp, act) {
 		_, file, line, _ := runtime.Caller(1)
 		fmt.Printf("\033[31m%s:%d:\n\n\texp: %#v\n\n\tgot: %#v\033[39m\n\n", filepath.Base(file), line, exp, act)
+		tb.FailNow()
+	}
+}
+
+// ok fails the test if an err is not nil.
+func ok(tb testing.TB, err error) {
+	if err != nil {
+		_, file, line, _ := runtime.Caller(1)
+		fmt.Printf("\033[31m%s:%d: unexpected error: %s\033[39m\n\n", filepath.Base(file), line, err.Error())
 		tb.FailNow()
 	}
 }
@@ -81,7 +93,7 @@ func TestRotWord(t *testing.T) {
 }
 
 func TestKeyExpansion(t *testing.T) {
-	key := []byte("\x2b\x7e\x15\x16\x28\xae\xd2\xa6\xab\xf7\x15\x88\x09\xcf\x4f\x3c")
+	key, _ := hex.DecodeString("2b7e151628aed2a6abf7158809cf4f3c")
 	w := keyExpansion(key)
 	t.Log("Key Expansion:")
 	for i := 0; i < len(w)/4; i++ {
@@ -92,4 +104,76 @@ func TestKeyExpansion(t *testing.T) {
 	equals(t, uint32(0x2b7e1516), w[0])
 	equals(t, uint32(0x7a96b943), w[9])
 	equals(t, uint32(0xb6630ca6), w[43])
+}
+
+func TestSubBytes(t *testing.T) {
+	b, _ := hex.DecodeString("01102144")
+	e, _ := hex.DecodeString("7ccafd1b")
+	subBytes(b)
+	equals(t, e, b)
+
+	b, _ = hex.DecodeString("00102030405060708090a0b0c0d0e0f0")
+	e, _ = hex.DecodeString("63cab7040953d051cd60e0e7ba70e18c")
+	subBytes(b)
+	equals(t, e, b)
+}
+
+func TestAddRoundKey(t *testing.T) {
+	b, _ := hex.DecodeString("013c7dff020405089799abc066770110")
+	w := []uint32{0x2000000, 0xffffffff, 0x23456789, 0xabcdef01}
+	e, _ := hex.DecodeString("033c7dfffdfbfaf7b4dccc49cdbaee11")
+	addRoundKey(b, w)
+	equals(t, e, b)
+
+	b, _ = hex.DecodeString("00112233445566778899aabbccddeeff")
+	w = []uint32{0x00010203, 0x04050607, 0x08090a0b, 0x0c0d0e0f}
+	e, _ = hex.DecodeString("00102030405060708090a0b0c0d0e0f0")
+	addRoundKey(b, w)
+	equals(t, e, b)
+}
+
+func TestShiftRows(t *testing.T) {
+	// 63cab704 0953d051 cd60e0e7 ba70e18c ->
+	// 6353e08c 0960e104 cd70b751 bacad0e7
+	b, _ := hex.DecodeString("63cab7040953d051cd60e0e7ba70e18c")
+	e, _ := hex.DecodeString("6353e08c0960e104cd70b751bacad0e7")
+	shiftRows(b)
+	equals(t, e, b)
+}
+
+func TestMixColumns(t *testing.T) {
+	b, _ := hex.DecodeString("6353e08c0960e104cd70b751bacad0e7")
+	e, _ := hex.DecodeString("5f72641557f5bc92f7be3b291db9f91a")
+	mixColumns(b)
+	equals(t, e, b)
+
+	b, _ = hex.DecodeString("a7be1a6997ad739bd8c9ca451f618b61")
+	e, _ = hex.DecodeString("ff87968431d86a51645151fa773ad009")
+	mixColumns(b)
+	equals(t, e, b)
+
+	b, _ = hex.DecodeString("3bd92268fc74fb735767cbe0c0590e2d")
+	e, _ = hex.DecodeString("4c9c1e66f771f0762c3f868e534df256")
+	mixColumns(b)
+	equals(t, e, b)
+
+	b, _ = hex.DecodeString("2d6d7ef03f33e334093602dd5bfb12c7")
+	e, _ = hex.DecodeString("6385b79ffc538df997be478e7547d691")
+	mixColumns(b)
+	equals(t, e, b)
+
+	b, _ = hex.DecodeString("36339d50f9b539269f2c092dc4406d23")
+	e, _ = hex.DecodeString("f4bcd45432e554d075f1d6c51dd03b3c")
+	mixColumns(b)
+	equals(t, e, b)
+}
+
+func TestCipher(t *testing.T) {
+	key, _ := hex.DecodeString("2b7e151628aed2a6abf7158809cf4f3c")
+	in, _ := hex.DecodeString("3243f6a8885a308d313198a2e0370734")
+	e, _ := hex.DecodeString("3925841d02dc09fbdc118597196a0b32")
+	out := make([]byte, 16)
+	w := keyExpansion(key)
+	cipher(in, out, w)
+	equals(t, e, out)
 }
