@@ -5,14 +5,23 @@
 
 package aes128
 
+// aes128 values
+const (
+	nk = 4
+	nb = 4
+	nr = 10
+)
+
+var sbox [256]byte = generateSBox()
+
 // returns a 16x16 substitution box
-func generateSBox() []byte {
+func generateSBox() [256]byte {
 	inverses := make([]byte, 256)
-	for i := 0; i < 256; i++ {
+	for i := range inverses {
 		inverses[i] = findInverse(byte(i))
 	}
-	box := make([]byte, 256)
-	for i := 0; i < 256; i++ {
+	var box [256]byte
+	for i := range box {
 		box[i] = sboxAffine(inverses[i])
 	}
 	return box
@@ -65,7 +74,7 @@ func rjmult(a, b byte) byte {
 }
 
 func sboxAffine(b byte) byte {
-	isSet := func(i uint) bool { return (b & (1 << (i%8))) != 0 }
+	isSet := func(i uint) bool { return (b & (1 << (i % 8))) != 0 }
 	affineBit := func(i uint) bool {
 		c := (0x63 & (1 << i)) != 0
 		return isSet(i) != isSet(i+4) != isSet(i+5) != isSet(i+6) != isSet(i+7) != c
@@ -77,4 +86,41 @@ func sboxAffine(b byte) byte {
 		}
 	}
 	return bp
+}
+
+// key is 128 bits (16 bytes), result is 4*nb*(nr+1) = 176 bytes
+func keyExpansion(key []byte) []uint32 {
+	w := make([]uint32, nb*(nr+1))
+	for i := 0; i < nk; i++ {
+		w[i] = uint32(key[4*i])<<24 | uint32(key[4*i+1])<<16 | uint32(key[4*i+2])<<8 | uint32(key[4*i+3])
+	}
+
+	var rcon [nb * (nr + 1) / nk]uint32
+	rcon[0] = uint32(0x01000000)
+	for i := 1; i < len(rcon); i++ {
+		// multiply each by 2 and reduce by modulus
+		rcon[i] = uint32(rjmult(byte(rcon[i-1]>>24), 2)) << 24
+	}
+
+	var tmp uint32
+	for i := nk; i < nb*(nr+1); i++ {
+		tmp = w[i-1]
+		if i%nk == 0 {
+			tmp = subWord(rotWord(tmp)) ^ rcon[i/nk-1]
+		} else if nk > 6 && i%nk == 4 {
+			// not reached in AES128
+			tmp = subWord(tmp)
+		}
+		w[i] = w[i-nk] ^ tmp
+	}
+	return w
+}
+
+func subWord(w uint32) uint32 {
+	return uint32(sbox[byte(w>>24)])<<24 | uint32(sbox[byte(w>>16)])<<16 |
+		uint32(sbox[byte(w>>8)])<<8 | uint32(sbox[byte(w)])
+}
+
+func rotWord(w uint32) uint32 {
+	return (w << 8) | (w >> 24)
 }

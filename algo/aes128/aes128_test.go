@@ -28,6 +28,8 @@ func assert(tb testing.TB, condition bool, msg string, v ...interface{}) {
 func TestMult(t *testing.T) {
 	equals(t, byte(0x01), rjmult(0x53, 0xca))
 	equals(t, byte(0xc1), rjmult(0x57, 0x83))
+	equals(t, byte(0x2), rjmult(0x01, 0x02))
+	equals(t, byte(0x4), rjmult(0x02, 0x02))
 }
 
 func TestAllInverse(t *testing.T) {
@@ -67,4 +69,27 @@ func TestSBox(t *testing.T) {
 		assert(t, chk[sbox[i]] == false, "bit %d is already set", i)
 		chk[sbox[i]] = true
 	}
+}
+
+func TestSubWord(t *testing.T) {
+	equals(t, uint32(0x777d3696), subWord(0x02132435))
+}
+
+func TestRotWord(t *testing.T) {
+	equals(t, uint32(0x02030401), rotWord(0x01020304))
+	equals(t, uint32(0xfdfefffc), rotWord(0xfcfdfeff))
+}
+
+func TestKeyExpansion(t *testing.T) {
+	key := []byte("\x2b\x7e\x15\x16\x28\xae\xd2\xa6\xab\xf7\x15\x88\x09\xcf\x4f\x3c")
+	w := keyExpansion(key)
+	t.Log("Key Expansion:")
+	for i := 0; i < len(w)/4; i++ {
+		z := w[i*4 : (i+1)*4]
+		t.Logf("%08x %08x %08x %08x\n", z[0], z[1], z[2], z[3])
+	}
+	equals(t, len(w), 44)
+	equals(t, uint32(0x2b7e1516), w[0])
+	equals(t, uint32(0x7a96b943), w[9])
+	equals(t, uint32(0xb6630ca6), w[43])
 }
