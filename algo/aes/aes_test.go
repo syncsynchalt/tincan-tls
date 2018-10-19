@@ -1,4 +1,4 @@
-package aes128
+package aes
 
 import (
 	"fmt"

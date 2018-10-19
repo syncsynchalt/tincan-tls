@@ -3,9 +3,9 @@
 
 // based on FIPS 197 (https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.197.pdf)
 
-package aes128
+package aes
 
-// aes128 values
+// aes128 values, we've only implemented it for now
 const (
 	nk = 4
 	nb = 4
@@ -133,7 +133,7 @@ func keyExpansion(key []byte) []uint32 {
 		if i%nk == 0 {
 			tmp = subWord(rotWord(tmp)) ^ rcon[i/nk-1]
 		} else if nk > 6 && i%nk == 4 {
-			// not reached in AES128
+			// not reached in AES-128
 			tmp = subWord(tmp)
 		}
 		w[i] = w[i-nk] ^ tmp
