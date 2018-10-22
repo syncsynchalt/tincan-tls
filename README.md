@@ -12,10 +12,15 @@ robust.
 The algorithms are full of known issues such as attackable side channels and should
 not be used for real work.  They are also unoptimized and err on the side of clarity.
 
+### Dependencies
+
+The crypto library has no dependencies other than crypto/rand.
+
 ### Algorithms
 
 The following algorithms were built for this implementation:
 
-* SHA-256
-* HMAC
-* AES-128
+* SHA-256 - [RFC 6234](https://tools.ietf.org/html/rfc6234)
+* HMAC - [RFC 2104](https://tools.ietf.org/html/rfc2104)
+* AES-128 - [FIPS 197](https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.197.pdf)
+* curve25519 - [RFC 7748](https://tools.ietf.org/html/rfc7748)
