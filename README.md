@@ -14,7 +14,7 @@ not be used for real work.  They are also unoptimized and err on the side of cla
 
 ### Dependencies
 
-The crypto library has no dependencies other than crypto/rand.
+This library has no dependencies other than `crypto/rand`.
 
 ### Algorithms
 
@@ -24,3 +24,4 @@ The following algorithms were built for this implementation:
 * HMAC - [RFC 2104](https://tools.ietf.org/html/rfc2104)
 * AES-128 - [FIPS 197](https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.197.pdf)
 * curve25519 - [RFC 7748](https://tools.ietf.org/html/rfc7748)
+* ECDHE - [RFC4492](https://tools.ietf.org/html/rfc4492)
