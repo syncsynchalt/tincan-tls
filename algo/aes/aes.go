@@ -15,7 +15,7 @@ const (
 var sbox [256]byte = generateSBox()
 
 type AES struct {
-	w []uint32
+	w   []uint32
 	out []byte
 }
 
@@ -27,11 +27,11 @@ func New128(key []byte) *AES {
 }
 
 func (a *AES) BlockSize() int {
-	return 4*nb
+	return 4 * nb
 }
 
 func (a *AES) KeySize() int {
-	return 4*nk
+	return 4 * nk
 }
 
 func (a *AES) Cipher(in []byte) []byte {
