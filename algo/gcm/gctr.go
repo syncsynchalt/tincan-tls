@@ -1,12 +1,12 @@
 package gcm
 
-type Ciph interface {
+type Cipher interface {
 	BlockSize() int
 	KeySize() int
-	Cipher(in []byte) []byte
+	Encrypt(in, out []byte)
 }
 
-func gctr(ciph Ciph, icb, x []byte) []byte {
+func gctr(ciph Cipher, icb, x []byte) []byte {
 	if len(icb) != 16 {
 		panic("gctr bad len")
 	}
@@ -17,21 +17,22 @@ func gctr(ciph Ciph, icb, x []byte) []byte {
 	yi := make([]byte, 16)
 	n := (len(x)+15)/16
 	cb := make([]byte, 16)
+	encout := make([]byte, 16)
 	for i := 1; i <= n; i++ {
 		if i == 1 {
 			copy(cb, icb)
 		} else {
 			inc_32(cb)
 		}
-		c := ciph.Cipher(cb)
+		ciph.Encrypt(cb, encout)
 		if i < n {
 			copy(yi, x[:16])
-			xor(yi, c)
+			xor(yi, encout)
 			y = append(y, yi...)
 			x = x[16:]
 		} else {
 			copy(yi, x)
-			xor(yi, c)
+			xor(yi, encout)
 			y = append(y, yi[:len(x)]...)
 		}
 	}

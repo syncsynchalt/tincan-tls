@@ -41,18 +41,19 @@ func TestGctrIndependent(t *testing.T) {
 func expectedResult(key, icb, plaintext []byte) []byte {
 	cipher := aes.New128(key)
 	expected := make([]byte, 0)
+	out := make([]byte, 16)
 	scratch := make([]byte, 16)
 	cb := copyBytes(icb)
 
 	for len(plaintext) > 0 {
-		ccb := copyBytes(cipher.Cipher(cb))
+		cipher.Encrypt(cb, out)
 		l := 16
 		if len(plaintext) < 16 {
 			l = len(plaintext)
 		}
 		copy(scratch, plaintext)
-		xor(ccb, scratch)
-		expected = append(expected, ccb[:l]...)
+		xor(out, scratch)
+		expected = append(expected, out[:l]...)
 
 		inc_32(cb)
 		plaintext = plaintext[l:]

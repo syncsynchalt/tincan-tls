@@ -16,13 +16,11 @@ var sbox [256]byte = generateSBox()
 
 type AES struct {
 	w   []uint32
-	out []byte
 }
 
 func New128(key []byte) *AES {
 	a := AES{}
 	a.w = keyExpansion(key)
-	a.out = make([]byte, 4*nb)
 	return &a
 }
 
@@ -34,9 +32,8 @@ func (a *AES) KeySize() int {
 	return 4 * nk
 }
 
-func (a *AES) Cipher(in []byte) []byte {
-	cipher(in, a.out, a.w)
-	return a.out
+func (a *AES) Encrypt(in, out []byte) {
+	cipher(in, out, a.w)
 }
 
 // returns a 16x16 substitution box

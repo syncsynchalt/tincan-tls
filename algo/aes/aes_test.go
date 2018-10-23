@@ -169,11 +169,12 @@ func TestInterface(t *testing.T) {
 	a := New128(key)
 	equals(t, 16, a.KeySize())
 	equals(t, 16, a.BlockSize())
-	out := a.Cipher([]byte("abcdefghijklmnop"))
+	out := make([]byte, a.BlockSize())
+	a.Encrypt([]byte("abcdefghijklmnop"), out)
 	equals(t, e, out)
 
 	e, _ = hex.DecodeString("8bd658946c56fee7598ce6e41544b92b")
-	out = a.Cipher([]byte("qrstuvwxyz012345"))
+	a.Encrypt([]byte("qrstuvwxyz012345"), out)
 	equals(t, e, out)
 }
 
@@ -183,6 +184,7 @@ func TestFromCLI(t *testing.T) {
 	in, _ := hex.DecodeString("01000000000000000000000000000000")
 
 	a := New128(key)
-	out := a.Cipher(in)
+	out := make([]byte, a.BlockSize())
+	a.Encrypt(in, out)
 	equals(t, e, out)
 }
