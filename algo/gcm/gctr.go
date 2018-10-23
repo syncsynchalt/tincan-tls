@@ -1,11 +1,5 @@
 package gcm
 
-type Cipher interface {
-	BlockSize() int
-	KeySize() int
-	Encrypt(in, out []byte)
-}
-
 func gctr(ciph Cipher, icb, x []byte) []byte {
 	if len(icb) != 16 {
 		panic("gctr bad len")

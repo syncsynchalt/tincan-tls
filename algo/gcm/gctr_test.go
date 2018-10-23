@@ -7,10 +7,6 @@ import (
 	"github.com/syncsynchalt/tincan-tls/algo/aes"
 )
 
-func copyBytes(b []byte) []byte {
-	return append([]byte(nil), b...)
-}
-
 func TestGctrIndependent(t *testing.T) {
 	key := []byte{0xff, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}
 	t.Log("key:", hex.EncodeToString(key))
