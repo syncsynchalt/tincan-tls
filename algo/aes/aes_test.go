@@ -176,3 +176,13 @@ func TestInterface(t *testing.T) {
 	out = a.Cipher([]byte("qrstuvwxyz012345"))
 	equals(t, e, out)
 }
+
+func TestFromCLI(t *testing.T) {
+	key, _ := hex.DecodeString("000102030405060708090a0b0c0d0e0f")
+	e, _ := hex.DecodeString("e37cd363dd7c87a09aff0e3e60e09c82")
+	in, _ := hex.DecodeString("01000000000000000000000000000000")
+
+	a := New128(key)
+	out := a.Cipher(in)
+	equals(t, e, out)
+}
