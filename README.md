@@ -3,21 +3,19 @@
 <img src="https://github.com/syncsynchalt/tincan-tls/raw/master/images/tincan.png"
      alt="Lover's telephone" width="498" height="140" />
 
-This is a top-to-bottom implementation of TLS 1.3 created through
-the process of staring at documents for hours until code came out.
+This is a top-to-bottom implementation of TLS 1.3 created by
+staring at documents for hours until code came out.
 
 It's crude and lumpy and ugly.  I can't say that's an intentional
 design aesthetic, but I hope it will serve as a warning to others:
-these implementations are unusable for real cryptographic work!
+these implementations are not for real cryptographic work!
 Any attempts to clean things up will be viewed as an attempt to
 trick someone else into reading or using this code and will be
 rejected.
 
 **The above paragraph is an example of bad software practice.**
 
-### Dependencies
-
-The challenge I set myself was to implement this with as few
+I implemented this with as few
 dependencies as possible, to ensure we know the reason for every
 byte going over the wire.  This library has no dependencies other
 than `crypto/rand`.
