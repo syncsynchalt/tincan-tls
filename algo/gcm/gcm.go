@@ -59,3 +59,37 @@ func copyBytes(b []byte) []byte {
 	copy(c, b)
 	return c
 }
+
+func GCMDecrypt(cipher Cipher, iv, ciphertext, adata, tag []byte) (plaintext []byte, failed bool) {
+	if len(iv) != 12 {
+		panic("gcm unexpected iv length")
+	}
+
+	zeroBlock := make([]byte, cipher.BlockSize())
+	H := make([]byte, cipher.BlockSize())
+	cipher.Encrypt(zeroBlock, H)
+
+	J0 := append(iv, 0, 0, 0, 1)
+	J1 := copyBytes(J0); inc_32(J1)
+
+	plain := gctr(cipher, J1, ciphertext)
+	u := (16 - len(ciphertext)%16) % 16
+	v := (16 - len(adata)%16) % 16
+
+	inS := adata
+	inS = append(inS, zeroBlock[:v]...)
+	inS = append(inS, ciphertext...)
+	inS = append(inS, zeroBlock[:u]...)
+	inS = append(inS, uint64ToBEBytes(uint64(8*len(adata)))...)
+	inS = append(inS, uint64ToBEBytes(uint64(8*len(ciphertext)))...)
+	S := ghash(H, inS)
+
+	T := gctr(cipher, J0, S)
+	T = T[:taglength]
+	for i := range tag {
+		if T[i] != tag[i] {
+			return []byte{}, true
+		}
+	}
+	return plain, false
+}
