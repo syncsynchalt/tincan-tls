@@ -1,8 +1,8 @@
 package gcm
 
 import (
-	"testing"
 	"encoding/hex"
+	"testing"
 
 	"github.com/syncsynchalt/tincan-tls/algo/aes"
 )

@@ -1,10 +1,10 @@
 package hkdf_test
 
 import (
-	"testing"
 	"encoding/hex"
 	"github.com/syncsynchalt/tincan-tls/algo/hkdf"
 	"github.com/syncsynchalt/tincan-tls/algo/sha256"
+	"testing"
 )
 
 func TestVec1(t *testing.T) {

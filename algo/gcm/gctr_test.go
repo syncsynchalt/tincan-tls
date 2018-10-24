@@ -1,8 +1,8 @@
 package gcm
 
 import (
-	"testing"
 	"encoding/hex"
+	"testing"
 
 	"github.com/syncsynchalt/tincan-tls/algo/aes"
 )
@@ -12,10 +12,12 @@ func TestGctrIndependent(t *testing.T) {
 	t.Log("key:", hex.EncodeToString(key))
 
 	x := make([]byte, 48)
-	x[0] = 1; x[16] = 2; x[32] = 3
+	x[0] = 1
+	x[16] = 2
+	x[32] = 3
 	t.Log("plaintext:", hex.EncodeToString(x))
 
-	icb  := []byte{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+	icb := []byte{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 	t.Log("icb:", hex.EncodeToString(icb))
 
 	// found using openssl enc command line tool
@@ -66,7 +68,7 @@ func TestGctrFullBlock(t *testing.T) {
 	}
 	t.Log("plaintext:", hex.EncodeToString(x))
 
-	icb  := []byte{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+	icb := []byte{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 	t.Log("icb:", hex.EncodeToString(icb))
 
 	expect := expectedResult(key, icb, x)
@@ -85,7 +87,7 @@ func TestGctrPartBlocks(t *testing.T) {
 		x[i] = byte(i)
 	}
 
-	icb  := []byte{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+	icb := []byte{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 
 	for i := 0; i < 32; i++ {
 		t.Log("testing plaintext of", len(x), "bytes")

@@ -15,7 +15,7 @@ const (
 var sbox [256]byte = generateSBox()
 
 type AES struct {
-	w   []uint32
+	w []uint32
 }
 
 func New128(key []byte) *AES {

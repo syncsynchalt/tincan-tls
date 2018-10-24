@@ -1,7 +1,7 @@
 package gcm
 
 func ghash(H, X []byte) []byte {
-	if len(H) != 16 || len(X) % 16 != 0 {
+	if len(H) != 16 || len(X)%16 != 0 {
 		panic("ghash bad length")
 	}
 	Y := make([]byte, 16)

@@ -11,9 +11,9 @@ import (
 
 var (
 	u_nine_bytes = newCoord(9).toBytes()
-	u_a24 = newCoord(121665)
-	u_p = coordModulus
-	u_p_minus_2 = coordModulus.sub(newCoord(2))
+	u_a24        = newCoord(121665)
+	u_p          = coordModulus
+	u_p_minus_2  = coordModulus.sub(newCoord(2))
 )
 
 func KeyPair() (priv, pub [32]byte, err error) {
@@ -44,7 +44,7 @@ func Mult(scalar, base [32]byte) [32]byte {
 	swap := 0
 
 	// Montgomery ladder around DoubleAndAdd
-	for t := 255-1; t >= 0; t-- {
+	for t := 255 - 1; t >= 0; t-- {
 		k_t := k.nbit(uint(t))
 		swap ^= k_t
 		x_2, x_3 = cswap(swap, x_2, x_3)

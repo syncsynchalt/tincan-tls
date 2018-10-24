@@ -26,7 +26,8 @@ func GCMEncrypt(cipher Cipher, iv, plaintext, adata []byte) (ciphertext []byte, 
 	cipher.Encrypt(zeroBlock, H)
 
 	J0 := append(iv, 0, 0, 0, 1)
-	J1 := copyBytes(J0); inc_32(J1)
+	J1 := copyBytes(J0)
+	inc_32(J1)
 
 	ctext := gctr(cipher, J1, plaintext)
 	u := (16 - len(ctext)%16) % 16
@@ -49,7 +50,7 @@ func GCMEncrypt(cipher Cipher, iv, plaintext, adata []byte) (ciphertext []byte, 
 func uint64ToBEBytes(n uint64) []byte {
 	b := make([]byte, 8)
 	for i := 0; i < 8; i++ {
-		b[i] = byte(n>>uint(56-8*i))
+		b[i] = byte(n >> uint(56-8*i))
 	}
 	return b
 }
@@ -70,7 +71,8 @@ func GCMDecrypt(cipher Cipher, iv, ciphertext, adata, tag []byte) (plaintext []b
 	cipher.Encrypt(zeroBlock, H)
 
 	J0 := append(iv, 0, 0, 0, 1)
-	J1 := copyBytes(J0); inc_32(J1)
+	J1 := copyBytes(J0)
+	inc_32(J1)
 
 	plain := gctr(cipher, J1, ciphertext)
 	u := (16 - len(ciphertext)%16) % 16

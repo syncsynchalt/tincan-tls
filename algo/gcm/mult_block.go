@@ -1,6 +1,6 @@
 package gcm
 
-var r = []byte{0xe1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,}
+var r = []byte{0xe1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 
 func multBlocks(X, Y []byte) []byte {
 	if len(X) != 16 || len(Y) != 16 {

@@ -49,14 +49,14 @@ func (c coord) toHex() string {
 	for i >= 0 {
 		if !first || c[i]&0xFFFFFFFF00000000 != 0 {
 			for sh := 0; sh < 8; sh++ {
-				ind := c[i]>>uint(60-4*sh)&0xF
+				ind := c[i] >> uint(60-4*sh) & 0xF
 				s = append(s, hexstring[ind])
 			}
 			s = append(s, '_')
 		}
 		first = false
 		for sh := 0; sh < 8; sh++ {
-			ind := c[i]>>uint(28-4*sh)&0xF
+			ind := c[i] >> uint(28-4*sh) & 0xF
 			s = append(s, hexstring[ind])
 		}
 		s = append(s, '_')
@@ -74,10 +74,10 @@ func (c *coord) copy() coord {
 func (c coord) reduce() coord {
 	discard := coord{}
 	// negative -> positive, not time safe
-	for c[len(c)-1] & 8000000000000000 != 0 {
+	for c[len(c)-1]&8000000000000000 != 0 {
 		c = c.add(coordModulus)
 	}
-	window := len(c)*64-256
+	window := len(c)*64 - 256
 	mod := coordModulus.rotl(uint(window))
 	for i := 0; i < window+1; i++ {
 		x := c.sub(mod)
@@ -101,10 +101,18 @@ func (a *coord) add(b coord) coord {
 		x3 := a[i] > c[i]
 		x4 := b[i] > c[i]
 		carry = 0
-		if x1 { carry = 1 }
-		if x2 { carry = 1 }
-		if x3 { carry = 1 }
-		if x4 { carry = 1 }
+		if x1 {
+			carry = 1
+		}
+		if x2 {
+			carry = 1
+		}
+		if x3 {
+			carry = 1
+		}
+		if x4 {
+			carry = 1
+		}
 	}
 	return c
 }
@@ -118,9 +126,15 @@ func (a *coord) sub(b coord) coord {
 		x2 := b[i] == 0xFFFFFFFFFFFFFFFF && (carry != 0)
 		x3 := b[i]+carry > a[i]
 		carry = 0
-		if x1 { carry = 1 }
-		if x2 { carry = 1 }
-		if x3 { carry = 1 }
+		if x1 {
+			carry = 1
+		}
+		if x2 {
+			carry = 1
+		}
+		if x3 {
+			carry = 1
+		}
 	}
 	return c
 }
@@ -213,6 +227,6 @@ func (base coord) exp(exponent coord) coord {
 		exponent = exponent.rotr(1)
 		base = base.mult(base).reduce()
 	}
-	
+
 	return result
 }

@@ -9,7 +9,7 @@ func gctr(ciph Cipher, icb, x []byte) []byte {
 	}
 	y := make([]byte, 0)
 	yi := make([]byte, 16)
-	n := (len(x)+15)/16
+	n := (len(x) + 15) / 16
 	cb := make([]byte, 16)
 	encout := make([]byte, 16)
 	for i := 1; i <= n; i++ {
