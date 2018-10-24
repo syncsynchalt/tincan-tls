@@ -44,6 +44,10 @@ func (s *Sha256) BlockSize() int {
 	return 64
 }
 
+func (s *Sha256) HashLen() int {
+	return 32
+}
+
 func (s *Sha256) Add(in []byte) {
 	s.addBits += uint64(8 * len(in))
 	var b []byte

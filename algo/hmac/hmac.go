@@ -10,9 +10,15 @@ type Hasher interface {
 	Add([]byte)
 	Sum() []byte
 	BlockSize() int
+	HashLen() int
 }
 
 func Compute(key, data []byte, h Hasher) []byte {
+	if len(key) > h.BlockSize() {
+		h.Reset()
+		h.Add(key)
+		key = h.Sum()
+	}
 	for len(key) < h.BlockSize() {
 		key = append(key, 0)
 	}
