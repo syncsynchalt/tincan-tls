@@ -71,3 +71,29 @@ func TestLong(t *testing.T) {
 	data := b(str)
 	equals(t, "a726645fabd1dc68c14d07a33de851d7a3a0d86d5c988754e066e8105beb6061", h(hmac.Compute(key, data, s)))
 }
+
+// test vectors from RFC 4231
+func TestRfcVec1(t *testing.T) {
+	s := sha256.New()
+	key, _ := hex.DecodeString("0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b")
+	data := []byte("Hi There")
+	expect, _ := hex.DecodeString("b0344c61d8db38535ca8afceaf0bf12b881dc200c9833da726e9376c2e32cff7")
+	equals(t, expect, hmac.Compute(key, data, s))
+}
+
+func TestRfcVec2(t *testing.T) {
+	s := sha256.New()
+	key := []byte("Jefe")
+	data := []byte("what do ya want for nothing?")
+	expect, _ := hex.DecodeString("5bdcc146bf60754e6a042426089575c75a003f089d2739839dec58b964ec3843")
+	equals(t, expect, hmac.Compute(key, data, s))
+}
+
+func TestRfcVec3(t *testing.T) {
+	s := sha256.New()
+	key, _ := hex.DecodeString("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+	data, _ := hex.DecodeString("DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD" +
+		"DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD")
+	expect, _ := hex.DecodeString("773ea91e36800e46854db8ebd09181a72959098b3ef8c122d9635514ced565fe")
+	equals(t, expect, hmac.Compute(key, data, s))
+}
