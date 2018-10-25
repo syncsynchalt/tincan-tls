@@ -1,8 +1,8 @@
 package tls
 
 import (
-	"testing"
 	"fmt"
+	"testing"
 )
 
 func TestClientHello(t *testing.T) {
@@ -12,7 +12,7 @@ func TestClientHello(t *testing.T) {
 
 	for i := range rec {
 		fmt.Printf("%02x", rec[i])
-		if i % 16 == 15 {
+		if i%16 == 15 {
 			fmt.Printf("\n")
 		} else {
 			fmt.Printf(" ")

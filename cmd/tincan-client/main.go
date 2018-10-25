@@ -1,11 +1,11 @@
 package main
 
 import (
-	"net"
-	"os"
-	"io"
 	"fmt"
 	"github.com/syncsynchalt/tincan-tls/tls"
+	"io"
+	"net"
+	"os"
 )
 
 func main() {

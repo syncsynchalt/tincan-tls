@@ -6,6 +6,9 @@ import (
 	"reflect"
 	"runtime"
 	"testing"
+
+	"encoding/hex"
+	"strings"
 )
 
 // equals fails the test if exp is not equal to act.
@@ -33,4 +36,14 @@ func assert(tb testing.TB, condition bool, msg string, v ...interface{}) {
 		fmt.Printf("\033[31m%s:%d: "+msg+"\033[39m\n\n", append([]interface{}{filepath.Base(file), line}, v...)...)
 		tb.FailNow()
 	}
+}
+
+func hexBytes(s string) []byte {
+	// strip spaces
+	s = strings.Join(strings.Fields(s), "")
+	b, err := hex.DecodeString(s)
+	if err != nil {
+		panic("bad hex input")
+	}
+	return b
 }

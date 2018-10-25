@@ -5,16 +5,34 @@ import "fmt"
 type Conn interface {
 	Read([]byte) (int, error)
 	Write([]byte) (int, error)
-	Close() (error)
+	Close() error
 }
 
+const (
+	kX25519KeyLen = 32
+	kSHA256OutLen = 32
+	kAES128KeyLen = 16
+	kGCMIVLen     = 12
+)
+
 type TLSConn struct {
-	raw           Conn
-	clientRandom  [32]byte
-	clientPrivKey [32]byte
-	clientPubKey  [32]byte
-	serverRandom  [32]byte
-	serverPubKey  [32]byte
+	raw                          Conn
+	clientRandom                 [32]byte
+	clientPrivKey                [kX25519KeyLen]byte
+	clientPubKey                 [kX25519KeyLen]byte
+	serverRandom                 [32]byte
+	serverPubKey                 [kX25519KeyLen]byte
+	transcript                   []byte
+	secret0                      [32]byte
+	clientHandshakeTrafficSecret [kSHA256OutLen]byte
+	serverHandshakeTrafficSecret [kSHA256OutLen]byte
+	computeKeysSalt              [kSHA256OutLen]byte
+	serverSeq                    uint64
+	clientSeq                    uint64
+	clientWriteKey               [kAES128KeyLen]byte
+	serverWriteKey               [kAES128KeyLen]byte
+	clientWriteIV                [kGCMIVLen]byte
+	serverWriteIV                [kGCMIVLen]byte
 }
 
 func NewConn(raw Conn, hostname string) (Conn, error) {
@@ -41,7 +59,8 @@ func NewConn(raw Conn, hostname string) (Conn, error) {
 			if err != nil {
 				return nil, err
 			}
-			handleRecord(conn, typ, payload)
+			handleHandshakeRecord(conn, typ, hdrbuf, payload)
+			conn.serverSeq++
 		}
 		if err != nil {
 			panic(err)
@@ -75,16 +94,18 @@ func (conn *TLSConn) Close() (err error) {
 	return conn.raw.Close()
 }
 
-func handleRecord(conn *TLSConn, typ int, payload []byte) {
+func handleHandshakeRecord(conn *TLSConn, typ int, hdr []byte, payload []byte) {
 	switch byte(typ) {
 	case kREC_TYPE_CHANGE_CIPHER_SPEC:
 		handleChangeCipherSpec(conn, payload)
 	case kREC_TYPE_ALERT:
 		handleAlert(conn, payload)
 	case kREC_TYPE_HANDSHAKE:
+		conn.transcript = append(conn.transcript, hdr...)
+		conn.transcript = append(conn.transcript, payload...)
 		handleHandshake(conn, payload)
 	case kREC_TYPE_APPLICATION_DATA:
-		handleApplicationData(conn, payload)
+		handleHandshakeCipherText(conn, hdr, payload)
 	default:
 		panic("unrecognized record type")
 	}
@@ -94,7 +115,7 @@ func xxxDump(label string, b []byte) {
 	fmt.Printf("%s:\n", label)
 	for i := 0; i < len(b); i++ {
 		fmt.Printf("%02x", b[i])
-		if i % 16 == 15 {
+		if i%16 == 15 {
 			fmt.Printf("\n")
 		} else {
 			fmt.Printf(" ")

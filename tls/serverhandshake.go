@@ -1,5 +1,10 @@
 package tls
 
+import (
+	"github.com/syncsynchalt/tincan-tls/algo/aes"
+	"github.com/syncsynchalt/tincan-tls/algo/gcm"
+)
+
 func handleHandshake(conn *TLSConn, payload []byte) {
 	if len(payload) < 4 {
 		panic("short handshake")
@@ -13,19 +18,53 @@ func handleHandshake(conn *TLSConn, payload []byte) {
 	switch byte(typ) {
 	case kHS_TYPE_SERVER_HELLO:
 		handleServerHello(conn, payload)
+		computeKeysAfterServerHello(conn)
 	default:
 		panic("handshake type not handled")
 	}
 }
 
+func handleHandshakeCipherText(conn *TLSConn, hdr []byte, payload []byte) {
+	_ = decryptHandshakeCipherText(conn, hdr, payload)
+	panic("done!")
+}
+
+func decryptHandshakeCipherText(conn *TLSConn, hdr []byte, payload []byte) []byte {
+xxxDump("ciphered", payload)
+	cipher := aes.New128(conn.serverWriteKey[:])
+	ciphertext := payload[:len(payload)-16]
+	iv := buildIV(conn.serverSeq, conn.serverWriteIV[:])
+	adata := hdr
+	tag := payload[len(payload)-16:]
+xxxDump("iv", iv)
+xxxDump("tag", tag)
+xxxDump("adata", adata)
+
+	plain, failed := gcm.GCMDecrypt(cipher, iv, ciphertext, adata, tag)
+	if failed {
+		panic("decrypt failed")
+	}
+xxxDump("plaintext", plain)
+	return plain
+}
+
+func buildIV(seq uint64, base []byte) []byte {
+	result := make([]byte, len(base))
+	copy(result, base)
+	for i := 0; i < 8; i++ {
+		result[len(result)-i-1] ^= byte(seq >> uint(8*i))
+	}
+	return result
+}
+
 func readVec8(payload []byte) (vec []byte, rest []byte) {
 	len := uint(payload[0])
-	return payload[1:1+len], payload[1+len:]
+	return payload[1 : 1+len], payload[1+len:]
 }
 
 func readVec16(payload []byte) (vec []byte, rest []byte) {
-	len := uint(payload[0]) << 8 | uint(payload[1])
-	return payload[2:2+len], payload[2+len:]
+	len := uint(payload[0])<<8 | uint(payload[1])
+	return payload[2 : 2+len], payload[2+len:]
 }
 
 func match(c []byte, payload []byte) bool {
@@ -42,6 +81,9 @@ func handleServerHello(conn *TLSConn, payload []byte) {
 	payload = payload[2:]
 
 	// server random
+	if match(kHS_HELLO_RETRY_REQUEST, payload) {
+		panic("server sent HelloRetryRequest")
+	}
 	copy(conn.serverRandom[:], payload[:32])
 	payload = payload[32:]
 
@@ -63,7 +105,7 @@ func handleServerHello(conn *TLSConn, payload []byte) {
 	// extensions
 	exts, payload := readVec16(payload)
 	for len(exts) > 0 {
-		typ := int(exts[0]) << 8 | int(exts[1])
+		typ := int(exts[0])<<8 | int(exts[1])
 		var ext []byte
 		ext, exts = readVec16(exts[2:])
 		switch typ {

@@ -41,35 +41,35 @@ func handleAlert(conn *TLSConn, payload []byte) {
 	case 48:
 		panic(prefix + "unknown CA")
 	case 49:
-		panic(prefix + "access_denied")
+		panic(prefix + "access denied")
 	case 50:
-		panic(prefix + "decode_error")
+		panic(prefix + "decode error")
 	case 51:
-		panic(prefix + "decrypt_error")
+		panic(prefix + "decrypt error")
 	case 70:
-		panic(prefix + "protocol_version")
+		panic(prefix + "protocol version")
 	case 71:
-		panic(prefix + "insufficient_security")
+		panic(prefix + "insufficient security")
 	case 80:
-		panic(prefix + "internal_error")
+		panic(prefix + "internal error")
 	case 86:
-		panic(prefix + "inappropriate_fallback")
+		panic(prefix + "inappropriate fallback")
 	case 90:
-		panic(prefix + "user_canceled")
+		panic(prefix + "user canceled")
 	case 109:
-		panic(prefix + "missing_extension")
+		panic(prefix + "missing extension")
 	case 110:
-		panic(prefix + "unsupported_extension")
+		panic(prefix + "unsupported extension")
 	case 112:
-		panic(prefix + "unrecognized_name")
+		panic(prefix + "unrecognized name")
 	case 113:
-		panic(prefix + "bad_certificate_status_response")
+		panic(prefix + "bad certificate status response")
 	case 115:
-		panic(prefix + "unknown_psk_identity")
+		panic(prefix + "unknown PSK identity")
 	case 116:
-		panic(prefix + "certificate_required")
+		panic(prefix + "certificate required")
 	case 120:
-		panic(prefix + "no_application_protocol")
+		panic(prefix + "no application protocol")
 	default:
 		panic(prefix + "unknown alert")
 	}

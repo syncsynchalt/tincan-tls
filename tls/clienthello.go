@@ -52,8 +52,8 @@ func makeClientHello(conn *TLSConn, hostname string) ([]byte, error) {
 	copy(conn.clientPrivKey[:], priv[:])
 	copy(conn.clientPubKey[:], pub[:])
 	exts = append(exts, to16(kEXT_KEY_SHARE)...)
-	exts = appendLen16(exts, len(conn.clientPubKey) + 2 + 2 + 2)
-	exts = appendLen16(exts, len(conn.clientPubKey) + 2 + 2)
+	exts = appendLen16(exts, len(conn.clientPubKey)+2+2+2)
+	exts = appendLen16(exts, len(conn.clientPubKey)+2+2)
 	exts = append(exts, kEXT_SUPPORTED_GROUPS_X25519...)
 	exts = appendLen16(exts, len(conn.clientPubKey))
 	exts = append(exts, conn.clientPubKey[:]...)
@@ -65,6 +65,12 @@ func makeClientHello(conn *TLSConn, hostname string) ([]byte, error) {
 	exts = append(exts, kEXT_SERVER_NAME_HOST)
 	exts = appendLen16(exts, len(hostname))
 	exts = append(exts, hostname...)
+
+	// extension - signature algorithms
+	exts = append(exts, to16(kEXT_SIGNATURE_ALGORITHMS)...)
+	exts = appendLen16(exts, 4)
+	exts = appendLen16(exts, 2)
+	exts = append(exts, kTLS_RSA_PKCS1_SHA256...)
 
 	// append extensions to our handshake
 	b = appendLen16(b, len(exts))
@@ -91,16 +97,16 @@ func appendLen8(b []byte, len int) []byte {
 }
 
 func appendLen16(b []byte, len int) []byte {
-	b = append(b, byte(len >> 8))
+	b = append(b, byte(len>>8))
 	return append(b, byte(len))
 }
 
 func appendLen24(b []byte, len int) []byte {
-	b = append(b, byte(len >> 16))
-	b = append(b, byte(len >> 8))
+	b = append(b, byte(len>>16))
+	b = append(b, byte(len>>8))
 	return append(b, byte(len))
 }
 
 func to16(num int) []byte {
-	return []byte{byte(num<<8), byte(num)}
+	return []byte{byte(num << 8), byte(num)}
 }

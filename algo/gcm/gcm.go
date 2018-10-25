@@ -78,7 +78,8 @@ func GCMDecrypt(cipher Cipher, iv, ciphertext, adata, tag []byte) (plaintext []b
 	u := (16 - len(ciphertext)%16) % 16
 	v := (16 - len(adata)%16) % 16
 
-	inS := adata
+	inS := make([]byte, 0)
+	inS = append(inS, adata...)
 	inS = append(inS, zeroBlock[:v]...)
 	inS = append(inS, ciphertext...)
 	inS = append(inS, zeroBlock[:u]...)
