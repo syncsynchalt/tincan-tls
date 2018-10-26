@@ -35,6 +35,12 @@ type TLSConn struct {
 	serverWriteIV                [kGCMIVLen]byte
 }
 
+type action int
+const (
+	action_none = action(0)
+	action_reset_sequence = action(1 << iota)
+)
+
 func NewConn(raw Conn, hostname string) (Conn, error) {
 	conn := &TLSConn{raw: raw}
 	rec, err := makeClientHello(conn, hostname)
@@ -57,10 +63,9 @@ func NewConn(raw Conn, hostname string) (Conn, error) {
 			if err != nil {
 				return nil, err
 			}
-			handleHSRecord(conn, typ, hdrbuf, payload)
+			acts := handleHSRecord(conn, typ, hdrbuf, payload)
 			conn.serverSeq++
-			if byte(typ) == kREC_TYPE_CHANGE_CIPHER_SPEC ||
-				(byte(typ) == kREC_TYPE_HANDSHAKE && byte(payload[0]) == kHS_TYPE_SERVER_HELLO) {
+			if acts & action_reset_sequence != 0 {
 				conn.serverSeq = 0
 				conn.clientSeq = 0
 			}
@@ -109,17 +114,17 @@ func (conn *TLSConn) Close() (err error) {
 	return conn.raw.Close()
 }
 
-func handleHSRecord(conn *TLSConn, typ int, rechdr []byte, payload []byte) {
+func handleHSRecord(conn *TLSConn, typ int, rechdr []byte, payload []byte) action {
 	switch byte(typ) {
 	case kREC_TYPE_CHANGE_CIPHER_SPEC:
-		handleChangeCipherSpec(conn, payload)
+		return handleChangeCipherSpec(conn, payload)
 	case kREC_TYPE_ALERT:
-		handleAlert(conn, payload)
+		return handleAlert(conn, payload)
 	case kREC_TYPE_HANDSHAKE:
 		conn.transcript = append(conn.transcript, payload...)
-		handleHandshake(conn, payload)
+		return handleHandshake(conn, payload)
 	case kREC_TYPE_APPLICATION_DATA:
-		handleHandshakeCipherText(conn, rechdr, payload)
+		return handleHandshakeCipherText(conn, rechdr, payload)
 	default:
 		panic("unrecognized record type")
 	}

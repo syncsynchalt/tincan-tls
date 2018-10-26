@@ -5,7 +5,8 @@ import (
 	"github.com/syncsynchalt/tincan-tls/algo/gcm"
 )
 
-func handleHandshake(conn *TLSConn, payload []byte) {
+func handleHandshake(conn *TLSConn, payload []byte) action {
+	acts := action_none
 	if len(payload) < 4 {
 		panic("short handshake")
 	}
@@ -17,16 +18,19 @@ func handleHandshake(conn *TLSConn, payload []byte) {
 	payload = payload[4:]
 	switch byte(typ) {
 	case kHS_TYPE_SERVER_HELLO:
-		handleServerHello(conn, payload)
+		acts = handleServerHello(conn, payload)
 		computeKeysAfterServerHello(conn)
 	default:
 		panic("handshake type not handled")
 	}
+	return acts
 }
 
-func handleHandshakeCipherText(conn *TLSConn, hdr []byte, payload []byte) {
+func handleHandshakeCipherText(conn *TLSConn, hdr []byte, payload []byte) action {
+	acts := action_none
 	_ = decryptHandshakeCipherText(conn, hdr, payload)
 	panic("done!")
+	return acts
 }
 
 func decryptHandshakeCipherText(conn *TLSConn, hdr []byte, payload []byte) []byte {
@@ -71,7 +75,7 @@ func match(c []byte, payload []byte) bool {
 	return true
 }
 
-func handleServerHello(conn *TLSConn, payload []byte) {
+func handleServerHello(conn *TLSConn, payload []byte) action {
 	// version
 	payload = payload[2:]
 
@@ -105,9 +109,9 @@ func handleServerHello(conn *TLSConn, payload []byte) {
 		ext, exts = readVec16(exts[2:])
 		switch typ {
 		case kEXT_KEY_SHARE:
-			handleKeyShare(conn, ext)
+			parseKeyShare(conn, ext)
 		case kEXT_SUPPORTED_VERSIONS:
-			handleSupportedVersions(conn, ext)
+			parseSupportedVersions(conn, ext)
 		default:
 			panic("unknown ext type")
 		}
@@ -116,9 +120,10 @@ func handleServerHello(conn *TLSConn, payload []byte) {
 	if len(payload) != 0 {
 		panic("unexpected suffix")
 	}
+	return action_reset_sequence
 }
 
-func handleKeyShare(conn *TLSConn, payload []byte) {
+func parseKeyShare(conn *TLSConn, payload []byte) {
 	if !match(kEXT_SUPPORTED_GROUPS_X25519, payload) {
 		panic("bad group in key share")
 	}
@@ -130,7 +135,7 @@ func handleKeyShare(conn *TLSConn, payload []byte) {
 	copy(conn.serverPubKey[:], pubkey)
 }
 
-func handleSupportedVersions(conn *TLSConn, payload []byte) {
+func parseSupportedVersions(conn *TLSConn, payload []byte) {
 	if !match(kTLS_VERSION_13, payload) {
 		panic("bad supported version")
 	}

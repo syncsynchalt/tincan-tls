@@ -1,6 +1,6 @@
 package tls
 
-func handleAlert(conn *TLSConn, payload []byte) {
+func handleAlert(conn *TLSConn, payload []byte) action {
 	if len(payload) < 2 {
 		panic("short alert")
 	}
