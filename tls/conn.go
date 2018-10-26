@@ -41,16 +41,14 @@ func NewConn(raw Conn, hostname string) (Conn, error) {
 	if err != nil {
 		panic(err)
 	}
-	n, err := conn.raw.Write(rec)
+	err = writeHandshakeRecord(conn, rec)
 	if err != nil {
 		return nil, err
 	}
-	if n != len(rec) {
-		panic("short write")
-	}
+
 	hdrbuf := make([]byte, 5)
 	for {
-		n, err = conn.raw.Read(hdrbuf)
+		n, err := conn.raw.Read(hdrbuf)
 		if n == 5 {
 			typ := int(hdrbuf[0])
 			len := int(hdrbuf[3])<<8 | int(hdrbuf[4])
@@ -59,14 +57,31 @@ func NewConn(raw Conn, hostname string) (Conn, error) {
 			if err != nil {
 				return nil, err
 			}
-			handleHandshakeRecord(conn, typ, hdrbuf, payload)
+			handleHSRecord(conn, typ, hdrbuf, payload)
 			conn.serverSeq++
+			if byte(typ) == kREC_TYPE_CHANGE_CIPHER_SPEC ||
+				(byte(typ) == kREC_TYPE_HANDSHAKE && byte(payload[0]) == kHS_TYPE_SERVER_HELLO) {
+				conn.serverSeq = 0
+				conn.clientSeq = 0
+			}
 		}
 		if err != nil {
 			panic(err)
 		}
 	}
 	return conn, nil
+}
+
+func writeHandshakeRecord(conn *TLSConn, rec []byte) error {
+	n, err := conn.raw.Write(rec)
+	if err != nil {
+		return err
+	}
+	if n != len(rec) {
+		panic("short write")
+	}
+	conn.transcript = append(conn.transcript, rec[5:]...)
+	return nil
 }
 
 func readFull(conn Conn, b []byte) error {
@@ -94,18 +109,17 @@ func (conn *TLSConn) Close() (err error) {
 	return conn.raw.Close()
 }
 
-func handleHandshakeRecord(conn *TLSConn, typ int, hdr []byte, payload []byte) {
+func handleHSRecord(conn *TLSConn, typ int, rechdr []byte, payload []byte) {
 	switch byte(typ) {
 	case kREC_TYPE_CHANGE_CIPHER_SPEC:
 		handleChangeCipherSpec(conn, payload)
 	case kREC_TYPE_ALERT:
 		handleAlert(conn, payload)
 	case kREC_TYPE_HANDSHAKE:
-		conn.transcript = append(conn.transcript, hdr...)
 		conn.transcript = append(conn.transcript, payload...)
 		handleHandshake(conn, payload)
 	case kREC_TYPE_APPLICATION_DATA:
-		handleHandshakeCipherText(conn, hdr, payload)
+		handleHandshakeCipherText(conn, rechdr, payload)
 	default:
 		panic("unrecognized record type")
 	}

@@ -30,21 +30,16 @@ func handleHandshakeCipherText(conn *TLSConn, hdr []byte, payload []byte) {
 }
 
 func decryptHandshakeCipherText(conn *TLSConn, hdr []byte, payload []byte) []byte {
-xxxDump("ciphered", payload)
 	cipher := aes.New128(conn.serverWriteKey[:])
 	ciphertext := payload[:len(payload)-16]
 	iv := buildIV(conn.serverSeq, conn.serverWriteIV[:])
 	adata := hdr
 	tag := payload[len(payload)-16:]
-xxxDump("iv", iv)
-xxxDump("tag", tag)
-xxxDump("adata", adata)
 
 	plain, failed := gcm.GCMDecrypt(cipher, iv, ciphertext, adata, tag)
 	if failed {
 		panic("decrypt failed")
 	}
-xxxDump("plaintext", plain)
 	return plain
 }
 

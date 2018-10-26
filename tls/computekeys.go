@@ -23,6 +23,8 @@ func computeKeysAfterServerHello(conn *TLSConn) {
 	copy(conn.serverWriteKey[:], hkdfExpandLabel(ssecret, "key", []byte{}, len(conn.serverWriteKey)))
 	copy(conn.clientWriteIV[:], hkdfExpandLabel(csecret, "iv", []byte{}, len(conn.clientWriteIV)))
 	copy(conn.serverWriteIV[:], hkdfExpandLabel(ssecret, "iv", []byte{}, len(conn.serverWriteIV)))
+	conn.serverSeq = 0
+	conn.clientSeq = 0
 }
 
 // xxx put this in appropriate place
