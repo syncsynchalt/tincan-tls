@@ -4,8 +4,10 @@ var (
 	kTLS_VERSION_12 = []byte{0x03, 0x03}
 	kTLS_VERSION_13 = []byte{0x03, 0x04}
 
-	kTLS_AES_128_GCM_SHA256 = []byte{0x13, 0x01}
-	kTLS_RSA_PKCS1_SHA256   = []byte{0x04, 0x01}
+	kTLS_AES_128_GCM_SHA256     = []byte{0x13, 0x01}
+	kTLS_RSA_PKCS1_SHA256       = []byte{0x04, 0x01}
+	kTLS_ECDSA_SECP256R1_SHA256 = []byte{0x04, 0x03}
+	kTLS_RSA_PSS_RSAE_SHA256    = []byte{0x08, 0x04}
 
 	kEXT_SERVER_NAME             = 0
 	kEXT_SERVER_NAME_HOST        = byte(0)

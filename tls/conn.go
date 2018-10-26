@@ -36,8 +36,9 @@ type TLSConn struct {
 }
 
 type action int
+
 const (
-	action_none = action(0)
+	action_none           = action(0)
 	action_reset_sequence = action(1 << iota)
 )
 
@@ -65,7 +66,7 @@ func NewConn(raw Conn, hostname string) (Conn, error) {
 			}
 			acts := handleHSRecord(conn, typ, hdrbuf, payload)
 			conn.serverSeq++
-			if acts & action_reset_sequence != 0 {
+			if acts&action_reset_sequence != 0 {
 				conn.serverSeq = 0
 				conn.clientSeq = 0
 			}

@@ -68,9 +68,12 @@ func makeClientHello(conn *TLSConn, hostname string) ([]byte, error) {
 
 	// extension - signature algorithms
 	exts = append(exts, to16(kEXT_SIGNATURE_ALGORITHMS)...)
-	exts = appendLen16(exts, 4)
-	exts = appendLen16(exts, 2)
+	exts = appendLen16(exts, 8)
+	exts = appendLen16(exts, 6)
+	// we're not going to check the signature anyway, so advertise all the requireds
 	exts = append(exts, kTLS_RSA_PKCS1_SHA256...)
+	exts = append(exts, kTLS_ECDSA_SECP256R1_SHA256...)
+	exts = append(exts, kTLS_RSA_PSS_RSAE_SHA256...)
 
 	// append extensions to our handshake
 	b = appendLen16(b, len(exts))

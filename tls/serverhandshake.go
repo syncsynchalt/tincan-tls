@@ -11,16 +11,23 @@ func handleHandshake(conn *TLSConn, payload []byte) action {
 		panic("short handshake")
 	}
 	typ := int(payload[0])
-	l := int(payload[1])<<16 | int(payload[2])<<8 | int(payload[3])
-	if l+4 != len(payload) {
-		panic("short handshake")
+	payload, rest := readVec(24, payload[1:])
+	if len(rest) != 0 {
+		panic("long handshake")
 	}
-	payload = payload[4:]
 	switch byte(typ) {
 	case kHS_TYPE_SERVER_HELLO:
 		acts = handleServerHello(conn, payload)
 		computeKeysAfterServerHello(conn)
+	case kHS_TYPE_ENCRYPTED_EXTENSIONS:
+		acts = handleEncryptedExtensions(conn, payload)
+	case kHS_TYPE_CERTIFICATE:
+		acts = handleServerCertificate(conn, payload)
+	case kHS_TYPE_CERTIFICATE_VERIFY:
+		acts = handleServerCertificateVerify(conn, payload)
 	default:
+xxxDump("packetType", []byte{byte(typ)})
+xxxDump("packet", payload)
 		panic("handshake type not handled")
 	}
 	return acts
@@ -28,8 +35,27 @@ func handleHandshake(conn *TLSConn, payload []byte) action {
 
 func handleHandshakeCipherText(conn *TLSConn, hdr []byte, payload []byte) action {
 	acts := action_none
-	_ = decryptHandshakeCipherText(conn, hdr, payload)
-	panic("done!")
+	plain := decryptHandshakeCipherText(conn, hdr, payload)
+	for len(plain) != 0 && plain[len(plain)-1] == '\000' {
+		plain = plain[:len(plain)-1]
+	}
+
+	overallType := plain[len(plain)-1]
+	plain = plain[:len(plain)-1]
+
+	switch overallType {
+	case kREC_TYPE_HANDSHAKE:
+		for len(plain) != 0 {
+			len := readNum(24, plain[1:])
+			payload := plain[:4+len]
+			plain = plain[4+len:]
+			acts |= handleHSRecord(conn, int(overallType), hdr, payload)
+		}
+	case kREC_TYPE_ALERT:
+		handleHSRecord(conn, int(overallType), hdr, plain)
+	default:
+		panic("unexpected ciphered type")
+	}
 	return acts
 }
 
@@ -56,14 +82,18 @@ func buildIV(seq uint64, base []byte) []byte {
 	return result
 }
 
-func readVec8(payload []byte) (vec []byte, rest []byte) {
-	len := uint(payload[0])
-	return payload[1 : 1+len], payload[1+len:]
+func readNum(bits int, b []byte) uint {
+	x := uint(0)
+	for i := 0; i < bits; i += 8 {
+		x <<= 8
+		x |= uint(b[i/8])
+	}
+	return x
 }
 
-func readVec16(payload []byte) (vec []byte, rest []byte) {
-	len := uint(payload[0])<<8 | uint(payload[1])
-	return payload[2 : 2+len], payload[2+len:]
+func readVec(lenBits int, payload []byte) (vec []byte, rest []byte) {
+	len := readNum(lenBits, payload)
+	return payload[uint(lenBits/8) : uint(lenBits/8)+len], payload[uint(lenBits/8)+len:]
 }
 
 func match(c []byte, payload []byte) bool {
@@ -87,7 +117,7 @@ func handleServerHello(conn *TLSConn, payload []byte) action {
 	payload = payload[32:]
 
 	// session id
-	_, payload = readVec8(payload)
+	_, payload = readVec(8, payload)
 
 	// cipher suite
 	if !match(kTLS_AES_128_GCM_SHA256, payload) {
@@ -102,20 +132,8 @@ func handleServerHello(conn *TLSConn, payload []byte) action {
 	payload = payload[1:]
 
 	// extensions
-	exts, payload := readVec16(payload)
-	for len(exts) > 0 {
-		typ := int(exts[0])<<8 | int(exts[1])
-		var ext []byte
-		ext, exts = readVec16(exts[2:])
-		switch typ {
-		case kEXT_KEY_SHARE:
-			parseKeyShare(conn, ext)
-		case kEXT_SUPPORTED_VERSIONS:
-			parseSupportedVersions(conn, ext)
-		default:
-			panic("unknown ext type")
-		}
-	}
+	exts, payload := readVec(16, payload)
+	parseExtensions(conn, exts)
 
 	if len(payload) != 0 {
 		panic("unexpected suffix")
@@ -123,20 +141,64 @@ func handleServerHello(conn *TLSConn, payload []byte) action {
 	return action_reset_sequence
 }
 
-func parseKeyShare(conn *TLSConn, payload []byte) {
+func parseExtensions(conn *TLSConn, exts []byte) {
+	for len(exts) > 0 {
+		typ := int(exts[0])<<8 | int(exts[1])
+		var ext []byte
+		ext, exts = readVec(16, exts[2:])
+		switch typ {
+		case kEXT_SUPPORTED_GROUPS:
+			parseExtSupportedGroups(conn, ext)
+		case kEXT_KEY_SHARE:
+			parseExtKeyShare(conn, ext)
+		case kEXT_SUPPORTED_VERSIONS:
+			parseExtSupportedVersions(conn, ext)
+		case kEXT_SERVER_NAME:
+			parseExtServerName(conn, ext)
+		default:
+			panic("unknown ext type")
+		}
+	}
+}
+
+func parseExtKeyShare(conn *TLSConn, payload []byte) {
 	if !match(kEXT_SUPPORTED_GROUPS_X25519, payload) {
 		panic("bad group in key share")
 	}
 	payload = payload[2:]
-	pubkey, payload := readVec16(payload)
+	pubkey, payload := readVec(16, payload)
 	if len(pubkey) != 32 || len(payload) != 0 {
 		panic("bad key share length")
 	}
 	copy(conn.serverPubKey[:], pubkey)
 }
 
-func parseSupportedVersions(conn *TLSConn, payload []byte) {
+func parseExtSupportedVersions(conn *TLSConn, payload []byte) {
 	if !match(kTLS_VERSION_13, payload) {
 		panic("bad supported version")
 	}
+}
+
+func parseExtSupportedGroups(conn *TLSConn, payload []byte) {
+	// the server advises its preferred groups, for use in subsequent connections
+}
+
+func parseExtServerName(conn *TLSConn, payload []byte) {
+	// not sure why tls13.crypto.mozilla.org sends this (empty) extension
+}
+
+func handleEncryptedExtensions(conn *TLSConn, payload []byte) action {
+	exts, _ := readVec(16, payload)
+	parseExtensions(conn, exts)
+	return action_none
+}
+
+func handleServerCertificate(conn *TLSConn, payload []byte) action {
+	// x509 authentication is outside the spec of this barest-minimal connection
+	return action_none
+}
+
+func handleServerCertificateVerify(conn *TLSConn, payload []byte) action {
+	// x509 authentication is outside the spec of this barest-minimal connection
+	return action_none
 }
