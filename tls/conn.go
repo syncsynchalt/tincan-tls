@@ -1,7 +1,5 @@
 package tls
 
-import "fmt"
-
 type Conn interface {
 	Read([]byte) (int, error)
 	Write([]byte) (int, error)
@@ -230,21 +228,6 @@ func (conn *TLSConn) dispatchRecordContents(hdr []byte, inner []byte) action {
 		acts |= conn.handleRecord(int(overallType), hdr, inner)
     }
     return acts
-}
-
-func xxxDump(label string, b []byte) {
-	fmt.Printf("%s:\n", label)
-	for i := 0; i < len(b); i++ {
-		fmt.Printf("%02x", b[i])
-		if i%16 == 15 {
-			fmt.Printf("\n")
-		} else {
-			fmt.Printf(" ")
-		}
-	}
-	if len(b)%16 != 0 {
-		fmt.Println()
-	}
 }
 
 func (conn *TLSConn) addToTranscript(hsr []byte) {
