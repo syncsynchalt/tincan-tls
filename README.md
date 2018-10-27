@@ -3,10 +3,10 @@
 <img src="https://github.com/syncsynchalt/tincan-tls/raw/master/images/tincan.png"
      alt="Lover's telephone" width="498" height="140" />
 
-This is a soup-to-nuts implementation of TLS 1.3 created by staring
-at documents for hours until code came out.  The single goal was
-to establish a valid TLS session by any means possible and trick
-servers into talking to me.
+This is a soup-to-nuts implementation of [TLS 1.3](https://tools.ietf.org/html/rfc8446)
+created by staring at documents for hours until code came out.  The
+single goal was to establish a valid TLS session by any means
+possible and trick servers into talking to me.
 
 This code is crude and lumpy and ugly.  This is intentional and
 should serve as a warning to others: this code is not usable for
@@ -21,6 +21,16 @@ caused some code to be particularly un-golangly as I didn't couldn't
 create `error` types.
 
 > Note: The above paragraphs are examples of bad software practices.
+
+### Usage
+
+Build and run with the following:
+
+```
+go get github.com/syncsynchalt/tincan-tls/cmd/tincan-client
+export PATH=$PATH:~/go/bin
+tincan-client host port
+```
 
 ### Algorithms
 
