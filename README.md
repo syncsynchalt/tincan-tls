@@ -40,6 +40,6 @@ The following algorithms were built for this implementation:
 * `HMAC` message authentication codes - [RFC 2104](https://tools.ietf.org/html/rfc2104)
 * `AES-128` symmetric cipher - [FIPS 197](https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.197.pdf)
 * `curve25519` (a particular elliptic curve) - [RFC 7748](https://tools.ietf.org/html/rfc7748)
-* `ECDHE` (Elliptic Curve Diffie-Hellman with Ephemeral keys) - [RFC4492](https://tools.ietf.org/html/rfc4492)
+* `ECDHE` (Elliptic Curve Diffie-Hellman with Ephemeral keys) - [RFC 4492](https://tools.ietf.org/html/rfc4492)
 * `GCM` (Galois/Counter Mode) - [NIST SP 800-38D](https://csrc.nist.gov/publications/detail/sp/800-38d/final)
 * `HKDF` (HMAC Key Derivation Function) - [RFC 5869](https://tools.ietf.org/html/rfc5869)
