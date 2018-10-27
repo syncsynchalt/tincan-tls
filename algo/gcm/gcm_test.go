@@ -26,7 +26,7 @@ func TestGCMEncryptGuzziEmpty(t *testing.T) {
 	tag, _ := hex.DecodeString("58e2fccefa7e3061367f1d57a4e7455a")
 
 	cipher := aes.New128(key)
-	cout, tout := GCMEncrypt(cipher, iv, pt, aad)
+	cout, tout := Encrypt(cipher, iv, pt, aad)
 	equals(t, ct, cout)
 	equals(t, tag, tout)
 }
@@ -41,7 +41,7 @@ func TestGCMEncryptGuzzi0Block(t *testing.T) {
 	tag, _ := hex.DecodeString("ab6e47d42cec13bdf53a67b21257bddf")
 
 	cipher := aes.New128(key)
-	cout, tout := GCMEncrypt(cipher, iv, pt, aad)
+	cout, tout := Encrypt(cipher, iv, pt, aad)
 	equals(t, ct, cout)
 	equals(t, tag, tout)
 }
@@ -58,7 +58,7 @@ func TestGCMEncryptGuzziNoAAD(t *testing.T) {
 	tag, _ := hex.DecodeString("4d5c2af327cd64a62cf35abd2ba6fab4")
 
 	cipher := aes.New128(key)
-	cout, tout := GCMEncrypt(cipher, iv, pt, aad)
+	cout, tout := Encrypt(cipher, iv, pt, aad)
 	equals(t, ct, cout)
 	equals(t, tag, tout)
 }
@@ -75,7 +75,7 @@ func TestGCMEncryptGuzziAAD(t *testing.T) {
 	tag, _ := hex.DecodeString("5bc94fbc3221a5db94fae95ae7121a47")
 
 	cipher := aes.New128(key)
-	cout, tout := GCMEncrypt(cipher, iv, pt, aad)
+	cout, tout := Encrypt(cipher, iv, pt, aad)
 	equals(t, ct, cout)
 	equals(t, tag, tout)
 }
@@ -90,7 +90,7 @@ func TestGCMEncryptNISTEmpty(t *testing.T) {
 	tag, _ := hex.DecodeString("250327c674aaf477aef2675748cf6971")
 
 	cipher := aes.New128(key)
-	cout, tout := GCMEncrypt(cipher, iv, pt, aad)
+	cout, tout := Encrypt(cipher, iv, pt, aad)
 	equals(t, ct, cout)
 	equals(t, tag, tout)
 }
@@ -105,7 +105,7 @@ func TestGCMEncryptNISTAADOnly(t *testing.T) {
 	tag, _ := hex.DecodeString("209fcc8d3675ed938e9c7166709dd946")
 
 	cipher := aes.New128(key)
-	cout, tout := GCMEncrypt(cipher, iv, pt, aad)
+	cout, tout := Encrypt(cipher, iv, pt, aad)
 	equals(t, ct, cout)
 	equals(t, tag, tout)
 }
@@ -120,7 +120,7 @@ func TestGCMEncryptPOnly(t *testing.T) {
 	tag, _ := hex.DecodeString("cba06bb4f6e097199250b0d19e6e4576")
 
 	cipher := aes.New128(key)
-	cout, tout := GCMEncrypt(cipher, iv, pt, aad)
+	cout, tout := Encrypt(cipher, iv, pt, aad)
 	equals(t, ct, cout)
 	equals(t, tag, tout)
 }
@@ -136,7 +136,7 @@ func TestGCMEncryptBigBoth(t *testing.T) {
 	tag, _ := hex.DecodeString("20d2cd594bad3a31df8f2d75f481cad0")
 
 	cipher := aes.New128(key)
-	cout, tout := GCMEncrypt(cipher, iv, pt, aad)
+	cout, tout := Encrypt(cipher, iv, pt, aad)
 	equals(t, ct, cout)
 	equals(t, tag, tout)
 }
@@ -151,7 +151,7 @@ func TestGCMDecryptGuzziEmpty(t *testing.T) {
 	tag, _ := hex.DecodeString("58e2fccefa7e3061367f1d57a4e7455a")
 
 	cipher := aes.New128(key)
-	dout, failed := GCMDecrypt(cipher, iv, ct, aad, tag)
+	dout, failed := Decrypt(cipher, iv, ct, aad, tag)
 	equals(t, false, failed)
 	equals(t, pt, dout)
 }
@@ -166,7 +166,7 @@ func TestGCMDecryptGuzzi0Block(t *testing.T) {
 	tag, _ := hex.DecodeString("ab6e47d42cec13bdf53a67b21257bddf")
 
 	cipher := aes.New128(key)
-	dout, failed := GCMDecrypt(cipher, iv, ct, aad, tag)
+	dout, failed := Decrypt(cipher, iv, ct, aad, tag)
 	equals(t, false, failed)
 	equals(t, pt, dout)
 }
@@ -183,7 +183,7 @@ func TestGCMDecryptGuzziNoAAD(t *testing.T) {
 	tag, _ := hex.DecodeString("4d5c2af327cd64a62cf35abd2ba6fab4")
 
 	cipher := aes.New128(key)
-	dout, failed := GCMDecrypt(cipher, iv, ct, aad, tag)
+	dout, failed := Decrypt(cipher, iv, ct, aad, tag)
 	equals(t, false, failed)
 	equals(t, pt, dout)
 }
@@ -200,7 +200,7 @@ func TestGCMDecryptGuzziAAD(t *testing.T) {
 	tag, _ := hex.DecodeString("5bc94fbc3221a5db94fae95ae7121a47")
 
 	cipher := aes.New128(key)
-	dout, failed := GCMDecrypt(cipher, iv, ct, aad, tag)
+	dout, failed := Decrypt(cipher, iv, ct, aad, tag)
 	equals(t, false, failed)
 	equals(t, pt, dout)
 }
@@ -215,7 +215,7 @@ func TestGCMDecryptNISTEmpty(t *testing.T) {
 	tag, _ := hex.DecodeString("250327c674aaf477aef2675748cf6971")
 
 	cipher := aes.New128(key)
-	dout, failed := GCMDecrypt(cipher, iv, ct, aad, tag)
+	dout, failed := Decrypt(cipher, iv, ct, aad, tag)
 	equals(t, false, failed)
 	equals(t, pt, dout)
 }
@@ -230,7 +230,7 @@ func TestGCMDecryptNISTAADOnly(t *testing.T) {
 	tag, _ := hex.DecodeString("209fcc8d3675ed938e9c7166709dd946")
 
 	cipher := aes.New128(key)
-	dout, failed := GCMDecrypt(cipher, iv, ct, aad, tag)
+	dout, failed := Decrypt(cipher, iv, ct, aad, tag)
 	equals(t, false, failed)
 	equals(t, pt, dout)
 }
@@ -245,7 +245,7 @@ func TestGCMDecryptPOnly(t *testing.T) {
 	tag, _ := hex.DecodeString("cba06bb4f6e097199250b0d19e6e4576")
 
 	cipher := aes.New128(key)
-	dout, failed := GCMDecrypt(cipher, iv, ct, aad, tag)
+	dout, failed := Decrypt(cipher, iv, ct, aad, tag)
 	equals(t, false, failed)
 	equals(t, pt, dout)
 }
@@ -261,7 +261,7 @@ func TestGCMDecryptBigBoth(t *testing.T) {
 	tag, _ := hex.DecodeString("20d2cd594bad3a31df8f2d75f481cad0")
 
 	cipher := aes.New128(key)
-	dout, failed := GCMDecrypt(cipher, iv, ct, aad, tag)
+	dout, failed := Decrypt(cipher, iv, ct, aad, tag)
 	equals(t, false, failed)
 	equals(t, pt, dout)
 }
@@ -276,7 +276,7 @@ func TestGCMDecryptFails(t *testing.T) {
 	tag, _ := hex.DecodeString("20d2cd594bad3a31df8f2d75f481cad1")
 
 	cipher := aes.New128(key)
-	dout, failed := GCMDecrypt(cipher, iv, ct, aad, tag)
+	dout, failed := Decrypt(cipher, iv, ct, aad, tag)
 	equals(t, true, failed)
 	equals(t, []byte{}, dout)
 	_ = pt

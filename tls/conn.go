@@ -16,23 +16,27 @@ const (
 )
 
 type TLSConn struct {
-	raw                          Conn
-	clientRandom                 [32]byte
-	clientPrivKey                [kX25519KeyLen]byte
-	clientPubKey                 [kX25519KeyLen]byte
-	serverRandom                 [32]byte
-	serverPubKey                 [kX25519KeyLen]byte
-	transcript                   []byte
-	secret0                      [32]byte
-	clientHandshakeTrafficSecret [kSHA256OutLen]byte
-	serverHandshakeTrafficSecret [kSHA256OutLen]byte
-	computeKeysSalt              [kSHA256OutLen]byte
-	serverSeq                    uint64
-	clientSeq                    uint64
-	clientWriteKey               [kAES128KeyLen]byte
-	serverWriteKey               [kAES128KeyLen]byte
-	clientWriteIV                [kGCMIVLen]byte
-	serverWriteIV                [kGCMIVLen]byte
+	raw            Conn
+	clientRandom   [32]byte
+	clientPrivKey  [kX25519KeyLen]byte
+	clientPubKey   [kX25519KeyLen]byte
+	serverRandom   [32]byte
+	serverPubKey   [kX25519KeyLen]byte
+	transcript     []byte
+	lastTranscript []byte
+	secret0        [32]byte
+	masterSecret   [kSHA256OutLen]byte
+	serverSeq      uint64
+	clientSeq      uint64
+	clientWriteKey [kAES128KeyLen]byte
+	serverWriteKey [kAES128KeyLen]byte
+	clientWriteIV  [kGCMIVLen]byte
+	serverWriteIV  [kGCMIVLen]byte
+
+	clientHandshakeTrafficSecret   [kSHA256OutLen]byte
+	serverHandshakeTrafficSecret   [kSHA256OutLen]byte
+	clientApplicationTrafficSecret [kSHA256OutLen]byte
+	serverApplicationTrafficSecret [kSHA256OutLen]byte
 }
 
 type action int
@@ -40,6 +44,7 @@ type action int
 const (
 	action_none           = action(0)
 	action_reset_sequence = action(1 << iota)
+	action_send_finished  = action(1 << iota)
 )
 
 func NewConn(raw Conn, hostname string) (Conn, error) {
@@ -70,6 +75,16 @@ func NewConn(raw Conn, hostname string) (Conn, error) {
 				conn.serverSeq = 0
 				conn.clientSeq = 0
 			}
+			if acts&action_send_finished != 0 {
+				rec, err := makeClientFinished(conn)
+				if err != nil {
+					panic(err)
+				}
+				err = writeHandshakeRecord(conn, rec)
+				if err != nil {
+					return nil, err
+				}
+			}
 		}
 		if err != nil {
 			panic(err)
@@ -86,7 +101,7 @@ func writeHandshakeRecord(conn *TLSConn, rec []byte) error {
 	if n != len(rec) {
 		panic("short write")
 	}
-	conn.transcript = append(conn.transcript, rec[5:]...)
+	conn.addToTranscript(rec[5:])
 	return nil
 }
 
@@ -122,7 +137,7 @@ func handleHSRecord(conn *TLSConn, typ int, rechdr []byte, payload []byte) actio
 	case kREC_TYPE_ALERT:
 		return handleAlert(conn, payload)
 	case kREC_TYPE_HANDSHAKE:
-		conn.transcript = append(conn.transcript, payload...)
+		conn.addToTranscript(payload)
 		return handleHandshake(conn, payload)
 	case kREC_TYPE_APPLICATION_DATA:
 		return handleHandshakeCipherText(conn, rechdr, payload)
@@ -141,5 +156,12 @@ func xxxDump(label string, b []byte) {
 			fmt.Printf(" ")
 		}
 	}
-	fmt.Println()
+	if len(b)%16 != 0 {
+		fmt.Println()
+	}
+}
+
+func (conn *TLSConn) addToTranscript(hsr []byte) {
+	conn.lastTranscript = conn.transcript
+	conn.transcript = append(conn.transcript, hsr...)
 }

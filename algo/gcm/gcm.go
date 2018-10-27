@@ -7,7 +7,7 @@ package gcm
 
 var (
 	// from RFC 5288, all defined AEAD ciphers have tag length of 128 bits
-	taglength = 16
+	TagLength = 16
 )
 
 type Cipher interface {
@@ -16,7 +16,7 @@ type Cipher interface {
 	Encrypt(in, out []byte)
 }
 
-func GCMEncrypt(cipher Cipher, iv, plaintext, adata []byte) (ciphertext []byte, authtag []byte) {
+func Encrypt(cipher Cipher, iv, plaintext, adata []byte) (ciphertext []byte, authtag []byte) {
 	if len(iv) != 12 {
 		panic("gcm unexpected iv length")
 	}
@@ -42,7 +42,7 @@ func GCMEncrypt(cipher Cipher, iv, plaintext, adata []byte) (ciphertext []byte, 
 	S := ghash(H, inS)
 
 	T := gctr(cipher, J0, S)
-	T = T[:taglength]
+	T = T[:TagLength]
 
 	return ctext, T
 }
@@ -61,7 +61,7 @@ func copyBytes(b []byte) []byte {
 	return c
 }
 
-func GCMDecrypt(cipher Cipher, iv, ciphertext, adata, tag []byte) (plaintext []byte, failed bool) {
+func Decrypt(cipher Cipher, iv, ciphertext, adata, tag []byte) (plaintext []byte, failed bool) {
 	if len(iv) != 12 {
 		panic("gcm unexpected iv length")
 	}
@@ -88,7 +88,7 @@ func GCMDecrypt(cipher Cipher, iv, ciphertext, adata, tag []byte) (plaintext []b
 	S := ghash(H, inS)
 
 	T := gctr(cipher, J0, S)
-	T = T[:taglength]
+	T = T[:TagLength]
 	for i := range tag {
 		if T[i] != tag[i] {
 			return []byte{}, true

@@ -152,6 +152,7 @@ func (s *Sha256) finalPad() {
 	}
 	if s.unprocessedLen >= 64 {
 		s.chomp(s.unprocessed[:])
+		s.unprocessedLen = 0
 	}
 	for s.unprocessedLen < 56 {
 		s.unprocessed[s.unprocessedLen] = 0
@@ -179,4 +180,10 @@ func (s *Sha256) Sum() []byte {
 		result[i*4+3] = byte(s.state[i] >> 0)
 	}
 	return result
+}
+
+func SumData(b []byte) []byte {
+	s := New()
+	s.Add(b)
+	return s.Sum()
 }

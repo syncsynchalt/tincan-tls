@@ -18,16 +18,16 @@ func handleHandshake(conn *TLSConn, payload []byte) action {
 	switch byte(typ) {
 	case kHS_TYPE_SERVER_HELLO:
 		acts = handleServerHello(conn, payload)
-		computeKeysAfterServerHello(conn)
+		computeHandshakeKeys(conn)
 	case kHS_TYPE_ENCRYPTED_EXTENSIONS:
 		acts = handleEncryptedExtensions(conn, payload)
 	case kHS_TYPE_CERTIFICATE:
 		acts = handleServerCertificate(conn, payload)
 	case kHS_TYPE_CERTIFICATE_VERIFY:
 		acts = handleServerCertificateVerify(conn, payload)
+	case kHS_TYPE_FINISHED:
+		acts = handleServerFinished(conn, payload)
 	default:
-xxxDump("packetType", []byte{byte(typ)})
-xxxDump("packet", payload)
 		panic("handshake type not handled")
 	}
 	return acts
@@ -61,12 +61,12 @@ func handleHandshakeCipherText(conn *TLSConn, hdr []byte, payload []byte) action
 
 func decryptHandshakeCipherText(conn *TLSConn, hdr []byte, payload []byte) []byte {
 	cipher := aes.New128(conn.serverWriteKey[:])
-	ciphertext := payload[:len(payload)-16]
+	ciphertext := payload[:len(payload)-gcm.TagLength]
 	iv := buildIV(conn.serverSeq, conn.serverWriteIV[:])
 	adata := hdr
-	tag := payload[len(payload)-16:]
+	tag := payload[len(payload)-gcm.TagLength:]
 
-	plain, failed := gcm.GCMDecrypt(cipher, iv, ciphertext, adata, tag)
+	plain, failed := gcm.Decrypt(cipher, iv, ciphertext, adata, tag)
 	if failed {
 		panic("decrypt failed")
 	}
@@ -201,4 +201,18 @@ func handleServerCertificate(conn *TLSConn, payload []byte) action {
 func handleServerCertificateVerify(conn *TLSConn, payload []byte) action {
 	// x509 authentication is outside the spec of this barest-minimal connection
 	return action_none
+}
+
+func handleServerFinished(conn *TLSConn, payload []byte) action {
+	expectedResult := computeServerFinished(conn)
+	if len(expectedResult) != len(payload) {
+		panic("server finished bytes differ")
+	}
+	for i := range payload {
+		if expectedResult[i] != payload[i] {
+			panic("server finished unexpected result")
+		}
+	}
+	computeServerApplicationKeys(conn)
+	return action_send_finished | action_reset_sequence
 }

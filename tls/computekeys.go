@@ -6,7 +6,7 @@ import (
 	"github.com/syncsynchalt/tincan-tls/algo/sha256"
 )
 
-func computeKeysAfterServerHello(conn *TLSConn) {
+func computeHandshakeKeys(conn *TLSConn) {
 	salt := []byte{}
 	psk := [32]byte{}
 	sharedSecret := ecdhe.CalculateSharedSecret(conn.clientPrivKey[:], conn.serverPubKey[:])
@@ -16,7 +16,9 @@ func computeKeysAfterServerHello(conn *TLSConn) {
 	copy(conn.clientHandshakeTrafficSecret[:], deriveSecret(handshakeSecret, "c hs traffic", conn.transcript))
 	copy(conn.serverHandshakeTrafficSecret[:], deriveSecret(handshakeSecret, "s hs traffic", conn.transcript))
 	derivedSecret = deriveSecret(handshakeSecret, "derived", []byte{})
-	copy(conn.computeKeysSalt[:], derivedSecret)
+	zeros := [32]byte{}
+	masterSecret := hkdf.Extract(sha256.New(), derivedSecret, zeros[:])
+	copy(conn.masterSecret[:], masterSecret)
 	csecret := conn.clientHandshakeTrafficSecret[:]
 	ssecret := conn.serverHandshakeTrafficSecret[:]
 	copy(conn.clientWriteKey[:], hkdfExpandLabel(csecret, "key", []byte{}, len(conn.clientWriteKey)))
@@ -27,9 +29,13 @@ func computeKeysAfterServerHello(conn *TLSConn) {
 	conn.clientSeq = 0
 }
 
-// xxx put this in appropriate place
-// xxx test
-func computeKeysAfterServerFinished(conn *TLSConn) {
+func computeServerApplicationKeys(conn *TLSConn) {
+	copy(conn.serverApplicationTrafficSecret[:], deriveSecret(conn.masterSecret[:], "s ap traffic", conn.transcript))
+	copy(conn.clientApplicationTrafficSecret[:], deriveSecret(conn.masterSecret[:], "c ap traffic", conn.transcript))
+	ssecret := conn.serverApplicationTrafficSecret[:]
+	copy(conn.serverWriteKey[:], hkdfExpandLabel(ssecret, "key", []byte{}, len(conn.serverWriteKey)))
+	copy(conn.serverWriteIV[:], hkdfExpandLabel(ssecret, "iv", []byte{}, len(conn.serverWriteIV)))
+	conn.serverSeq = 0
 }
 
 func hkdfExpandLabel(secret []byte, label string, context []byte, length int) []byte {
