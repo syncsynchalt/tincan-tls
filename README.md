@@ -8,20 +8,16 @@ staring at documents for hours until code came out.
 
 It's crude and lumpy and ugly.  I can't say that's an intentional
 design goal, but I hope it will serve as a warning to others:
-do not copy this code for real work!
+this code is not usable for real work.
 
 Any attempts to clean things up will be viewed as an attempt to
 trick someone else into reading or using this code and will be
 rejected.
 
-> Note: The above paragraph is an example of bad software practice.
+To win a bet I implemented this with as few dependencies as possible.
+The crypto library has no dependencies other than `crypto/rand`.
 
-I implemented this with as few
-dependencies as possible, to ensure we know the reason for every
-byte going over the wire.  This library has no dependencies other
-than `crypto/rand`.
-
-> Note: The above paragraph is an example of bad software practice.
+> Note: The above paragraphs are examples of bad software practices.
 
 ### Algorithms
 
