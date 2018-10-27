@@ -28,30 +28,6 @@ func handleHandshake(conn *TLSConn, payload []byte) action {
 	return acts
 }
 
-func handleHandshakeCipherText(conn *TLSConn, hdr []byte, payload []byte) action {
-	acts := action_none
-	plain := conn.decryptRecord(hdr, payload)
-	for len(plain) != 0 && plain[len(plain)-1] == '\000' {
-		plain = plain[:len(plain)-1]
-	}
-
-	overallType := plain[len(plain)-1]
-	plain = plain[:len(plain)-1]
-
-	switch overallType {
-	case kREC_TYPE_HANDSHAKE:
-		for len(plain) != 0 {
-			len := readNum(24, plain[1:])
-			payload := plain[:4+len]
-			plain = plain[4+len:]
-			acts |= conn.handleHSRecord(int(overallType), hdr, payload)
-		}
-	default:
-		acts |= conn.handleHSRecord(int(overallType), hdr, plain)
-	}
-	return acts
-}
-
 func readNum(bits int, b []byte) uint {
 	x := uint(0)
 	for i := 0; i < bits; i += 8 {

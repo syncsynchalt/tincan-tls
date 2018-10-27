@@ -61,35 +61,12 @@ func NewConn(raw Conn, hostname string) (Conn, error) {
 		return nil, err
 	}
 
-	hdrbuf := make([]byte, 5)
 	for {
-		err = conn.readRaw(hdrbuf)
+		finished, err := conn.readRecord()
 		if err != nil {
 			panic(err)
 		}
-		typ := int(hdrbuf[0])
-		len := readNum(16, hdrbuf[3:])
-		payload := make([]byte, len)
-		err = conn.readRaw(payload)
-		if err != nil {
-			return nil, err
-		}
-		acts := conn.handleHSRecord(typ, hdrbuf, payload)
-		conn.serverSeq++
-		if acts&action_reset_sequence != 0 {
-			conn.serverSeq = 0
-			conn.clientSeq = 0
-		}
-		if acts&action_send_finished != 0 {
-			rec, err := makeClientFinished(conn)
-			if err != nil {
-				panic(err)
-			}
-			err = writeHandshakeRecord(conn, rec)
-			if err != nil {
-				return nil, err
-			}
-			computeClientApplicationKeys(conn)
+		if finished {
 			break
 		}
 	}
@@ -132,7 +109,7 @@ func (conn *TLSConn) writeRaw(b []byte) error {
 
 func (conn *TLSConn) Read(b []byte) (n int, err error) {
 	if len(conn.readBuf) == 0 {
-		err = conn.readRecord()
+		_, err = conn.readRecord()
 		if err != nil {
 			return 0, err
 		}
@@ -150,37 +127,38 @@ func (conn *TLSConn) Read(b []byte) (n int, err error) {
 	return l, nil
 }
 
-func (conn *TLSConn) readRecord() error {
+func (conn *TLSConn) readRecord() (handshakeFinished bool, err error) {
 	hdrbuf := make([]byte, 5)
-	err := conn.readRaw(hdrbuf)
+	err = conn.readRaw(hdrbuf)
 	if err != nil {
-		return err
+		return false, err
 	}
 	typ := int(hdrbuf[0])
 	length := readNum(16, hdrbuf[3:])
 	payload := make([]byte, length)
 	err = conn.readRaw(payload)
 	if err != nil {
-		return err
+		return false, err
 	}
-	plain := conn.handleAppRecord(typ, hdrbuf, payload)
-	// strip end padding
-	for len(plain) > 0 && plain[len(plain)-1] == '\000' {
-		plain = plain[:len(plain)-1]
-	}
-	embtyp, plain := lastByte(plain)
-	switch embtyp {
-	case kREC_TYPE_CHANGE_CIPHER_SPEC:
-		handleChangeCipherSpec(conn, payload)
-	case kREC_TYPE_ALERT:
-		handleAlert(conn, plain)
-	case kREC_TYPE_APPLICATION_DATA:
-		conn.readBuf = append(conn.readBuf, plain...)
-	default:
-		panic("unrecognized encrypted record type")
-	}
+	acts := conn.handleRecord(typ, hdrbuf, payload)
 	conn.serverSeq++
-	return nil
+	if acts&action_reset_sequence != 0 {
+		conn.serverSeq = 0
+		conn.clientSeq = 0
+	}
+	if acts&action_send_finished != 0 {
+		rec, err := makeClientFinished(conn)
+		if err != nil {
+			panic(err)
+		}
+		err = writeHandshakeRecord(conn, rec)
+		if err != nil {
+			return false, err
+		}
+		computeClientApplicationKeys(conn)
+		return true, err
+	}
+	return false, nil
 }
 
 func lastByte(bb []byte) (last byte, rest []byte) {
@@ -211,7 +189,7 @@ func (conn *TLSConn) Close() (err error) {
 	return conn.raw.Close()
 }
 
-func (conn *TLSConn) handleHSRecord(typ int, rechdr []byte, payload []byte) action {
+func (conn *TLSConn) handleRecord(typ int, rechdr []byte, payload []byte) action {
 	switch byte(typ) {
 	case kREC_TYPE_CHANGE_CIPHER_SPEC:
 		return handleChangeCipherSpec(conn, payload)
@@ -221,22 +199,37 @@ func (conn *TLSConn) handleHSRecord(typ int, rechdr []byte, payload []byte) acti
 		conn.addToTranscript(payload)
 		return handleHandshake(conn, payload)
 	case kREC_TYPE_APPLICATION_DATA:
-		return handleHandshakeCipherText(conn, rechdr, payload)
+		plain := conn.decryptRecord(rechdr, payload)
+		return conn.dispatchRecordContents(rechdr, plain)
 	default:
 		panic("unrecognized handshake-context record type")
 	}
 }
 
-func (conn *TLSConn) handleAppRecord(typ int, rechdr []byte, payload []byte) []byte {
-	switch byte(typ) {
+// parses TLSInnerPlaintext
+func (conn *TLSConn) dispatchRecordContents(hdr []byte, inner []byte) action {
+    for len(inner) != 0 && inner[len(inner)-1] == '\000' {
+        inner = inner[:len(inner)-1]
+    }
+	overallType, inner := lastByte(inner)
+
+    acts := action_none
+	switch overallType {
 	case kREC_TYPE_APPLICATION_DATA:
-		return conn.decryptRecord(rechdr, payload)
-	case kREC_TYPE_ALERT:
-		handleAlert(conn, payload)
+		conn.readBuf = append(conn.readBuf, inner...)
+		acts |= action_none
+    case kREC_TYPE_HANDSHAKE:
+		// multiple handshake records conglommed together
+        for len(inner) != 0 {
+            len := readNum(24, inner[1:])
+            payload := inner[:4+len]
+            inner = inner[4+len:]
+            acts |= conn.handleRecord(int(overallType), hdr, payload)
+        }
 	default:
-		panic("unrecognized application-context record type")
-	}
-	return nil
+		acts |= conn.handleRecord(int(overallType), hdr, inner)
+    }
+    return acts
 }
 
 func xxxDump(label string, b []byte) {
