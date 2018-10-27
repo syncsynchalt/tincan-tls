@@ -17,8 +17,8 @@ rejected.
 
 To win a bet I implemented this with as few dependencies as possible.
 The crypto library has only one dependency, `crypto/rand`.  This
-caused some code to be particularly un-golangly as I didn't couldn't
-create `error` types.
+caused some code to be particularly un-golangly as I couldn't create
+`error` objects.
 
 > Note: The above paragraphs are examples of bad software practices.
 
