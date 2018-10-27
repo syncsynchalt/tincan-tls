@@ -3,8 +3,10 @@
 <img src="https://github.com/syncsynchalt/tincan-tls/raw/master/images/tincan.png"
      alt="Lover's telephone" width="498" height="140" />
 
-This is a top-to-bottom implementation of TLS 1.3 created by
-staring at documents for hours until code came out.
+This is a top-to-bottom implementation of TLS 1.3 created by staring
+at documents for hours until code came out.  The single goal was to
+establish a TLS connection by any means possible and trick servers
+into talking to me.
 
 It's crude and lumpy and ugly.  I can't say that's an intentional
 design goal, but I hope it will serve as a warning to others:
