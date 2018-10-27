@@ -32,13 +32,16 @@ func main() {
 			if n != 0 {
 				os.Stdout.Write(rbuf[:n])
 			}
-			if err == io.EOF {
+			if n == 0 || err == io.EOF {
 				break
 			}
 			if err != nil {
 				panic(err)
 			}
 		}
+		fmt.Fprintln(os.Stderr, "EOF from peer")
+		tlsConn.Close()
+		os.Exit(0)
 	}()
 
 	wbuf := make([]byte, 102400)

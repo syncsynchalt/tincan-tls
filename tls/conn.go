@@ -37,6 +37,9 @@ type TLSConn struct {
 	serverHandshakeTrafficSecret   [kSHA256OutLen]byte
 	clientApplicationTrafficSecret [kSHA256OutLen]byte
 	serverApplicationTrafficSecret [kSHA256OutLen]byte
+
+	readBuf  []byte
+	writeBuf []byte
 }
 
 type action int
@@ -60,34 +63,34 @@ func NewConn(raw Conn, hostname string) (Conn, error) {
 
 	hdrbuf := make([]byte, 5)
 	for {
-		n, err := conn.raw.Read(hdrbuf)
-		if n == 5 {
-			typ := int(hdrbuf[0])
-			len := int(hdrbuf[3])<<8 | int(hdrbuf[4])
-			payload := make([]byte, len)
-			err = readFull(conn.raw, payload)
+		err = conn.readRaw(hdrbuf)
+		if err != nil {
+			panic(err)
+		}
+		typ := int(hdrbuf[0])
+		len := readNum(16, hdrbuf[3:])
+		payload := make([]byte, len)
+		err = conn.readRaw(payload)
+		if err != nil {
+			return nil, err
+		}
+		acts := conn.handleHSRecord(typ, hdrbuf, payload)
+		conn.serverSeq++
+		if acts&action_reset_sequence != 0 {
+			conn.serverSeq = 0
+			conn.clientSeq = 0
+		}
+		if acts&action_send_finished != 0 {
+			rec, err := makeClientFinished(conn)
+			if err != nil {
+				panic(err)
+			}
+			err = writeHandshakeRecord(conn, rec)
 			if err != nil {
 				return nil, err
 			}
-			acts := handleHSRecord(conn, typ, hdrbuf, payload)
-			conn.serverSeq++
-			if acts&action_reset_sequence != 0 {
-				conn.serverSeq = 0
-				conn.clientSeq = 0
-			}
-			if acts&action_send_finished != 0 {
-				rec, err := makeClientFinished(conn)
-				if err != nil {
-					panic(err)
-				}
-				err = writeHandshakeRecord(conn, rec)
-				if err != nil {
-					return nil, err
-				}
-			}
-		}
-		if err != nil {
-			panic(err)
+			computeClientApplicationKeys(conn)
+			break
 		}
 	}
 	return conn, nil
@@ -105,32 +108,110 @@ func writeHandshakeRecord(conn *TLSConn, rec []byte) error {
 	return nil
 }
 
-func readFull(conn Conn, b []byte) error {
+func (conn *TLSConn) readRaw(b []byte) error {
 	for len(b) > 0 {
-		n, err := conn.Read(b)
+		n, err := conn.raw.Read(b)
+		b = b[n:]
 		if err != nil {
 			return err
 		}
-		b = b[n:]
 	}
 	return nil
 }
 
-func (conn *TLSConn) Read([]byte) (n int, err error) {
-	// xxx todo
-	return 0, nil
+func (conn *TLSConn) writeRaw(b []byte) error {
+	for len(b) > 0 {
+		n, err := conn.raw.Write(b)
+		b = b[n:]
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
-func (conn *TLSConn) Write([]byte) (n int, err error) {
-	// xxx todo
-	return 0, nil
+func (conn *TLSConn) Read(b []byte) (n int, err error) {
+	if len(conn.readBuf) == 0 {
+		err = conn.readRecord()
+		if err != nil {
+			return 0, err
+		}
+	}
+	l := len(conn.readBuf)
+	if l > len(b) {
+		l = len(b)
+	}
+	copy(b[:l], conn.readBuf)
+	conn.readBuf = conn.readBuf[l:]
+	if len(conn.readBuf) == 0 {
+		// reclaim memory
+		conn.readBuf = nil
+	}
+	return l, nil
+}
+
+func (conn *TLSConn) readRecord() error {
+	hdrbuf := make([]byte, 5)
+	err := conn.readRaw(hdrbuf)
+	if err != nil {
+		return err
+	}
+	typ := int(hdrbuf[0])
+	length := readNum(16, hdrbuf[3:])
+	payload := make([]byte, length)
+	err = conn.readRaw(payload)
+	if err != nil {
+		return err
+	}
+	plain := conn.handleAppRecord(typ, hdrbuf, payload)
+	// strip end padding
+	for len(plain) > 0 && plain[len(plain)-1] == '\000' {
+		plain = plain[:len(plain)-1]
+	}
+	embtyp, plain := lastByte(plain)
+	switch embtyp {
+	case kREC_TYPE_CHANGE_CIPHER_SPEC:
+		handleChangeCipherSpec(conn, payload)
+	case kREC_TYPE_ALERT:
+		handleAlert(conn, plain)
+	case kREC_TYPE_APPLICATION_DATA:
+		conn.readBuf = append(conn.readBuf, plain...)
+	default:
+		panic("unrecognized encrypted record type")
+	}
+	conn.serverSeq++
+	return nil
+}
+
+func lastByte(bb []byte) (last byte, rest []byte) {
+	if len(bb) == 0 {
+		panic("lastbyte on empty record")
+	}
+	b := bb[len(bb)-1]
+	return b, bb[:len(bb)-1]
+}
+
+func (conn *TLSConn) Write(b []byte) (n int, err error) {
+	tosend := make([]byte, 0)
+	tosend = append(tosend, b...)
+	tosend = append(tosend, kREC_TYPE_APPLICATION_DATA)
+	encrypted, err := conn.createEncryptedRecord(tosend)
+	if err != nil {
+		return 0, err
+	}
+	err = conn.writeRaw(encrypted)
+	conn.clientSeq++
+	if err != nil {
+		return 0, err
+	}
+	return len(b), nil
 }
 
 func (conn *TLSConn) Close() (err error) {
 	return conn.raw.Close()
 }
 
-func handleHSRecord(conn *TLSConn, typ int, rechdr []byte, payload []byte) action {
+func (conn *TLSConn) handleHSRecord(typ int, rechdr []byte, payload []byte) action {
 	switch byte(typ) {
 	case kREC_TYPE_CHANGE_CIPHER_SPEC:
 		return handleChangeCipherSpec(conn, payload)
@@ -142,8 +223,20 @@ func handleHSRecord(conn *TLSConn, typ int, rechdr []byte, payload []byte) actio
 	case kREC_TYPE_APPLICATION_DATA:
 		return handleHandshakeCipherText(conn, rechdr, payload)
 	default:
-		panic("unrecognized record type")
+		panic("unrecognized handshake-context record type")
 	}
+}
+
+func (conn *TLSConn) handleAppRecord(typ int, rechdr []byte, payload []byte) []byte {
+	switch byte(typ) {
+	case kREC_TYPE_APPLICATION_DATA:
+		return conn.decryptRecord(rechdr, payload)
+	case kREC_TYPE_ALERT:
+		handleAlert(conn, payload)
+	default:
+		panic("unrecognized application-context record type")
+	}
+	return nil
 }
 
 func xxxDump(label string, b []byte) {

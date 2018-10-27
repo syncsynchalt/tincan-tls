@@ -3,21 +3,22 @@
 <img src="https://github.com/syncsynchalt/tincan-tls/raw/master/images/tincan.png"
      alt="Lover's telephone" width="498" height="140" />
 
-This is a top-to-bottom implementation of TLS 1.3 created by staring
-at documents for hours until code came out.  The single goal was to
-establish a TLS connection by any means possible and trick servers
-into talking to me.
+This is a soup-to-nuts implementation of TLS 1.3 created by staring
+at documents for hours until code came out.  The single goal was
+to establish a valid TLS session by any means possible and trick
+servers into talking to me.
 
-It's crude and lumpy and ugly.  I can't say that's an intentional
-design goal, but I hope it will serve as a warning to others:
-this code is not usable for real work.
-
-Any attempts to clean things up will be viewed as an attempt to
-trick someone else into reading or using this code and will be
+This code is crude and lumpy and ugly.  This is intentional and
+should serve as a warning to others: this code is not usable for
+real work.  In particular the crypto code is slow and full of timing
+side-channels.  Any attempts to clean things up will be viewed as
+an attempt to trick someone else into using this code and will be
 rejected.
 
 To win a bet I implemented this with as few dependencies as possible.
-The crypto library has no dependencies other than `crypto/rand`.
+The crypto library has only one dependency, `crypto/rand`.  This
+caused some code to be particularly un-golangly as I didn't couldn't
+create `error` types.
 
 > Note: The above paragraphs are examples of bad software practices.
 

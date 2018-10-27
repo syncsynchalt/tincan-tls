@@ -1,10 +1,5 @@
 package tls
 
-import (
-	"github.com/syncsynchalt/tincan-tls/algo/aes"
-	"github.com/syncsynchalt/tincan-tls/algo/gcm"
-)
-
 func handleHandshake(conn *TLSConn, payload []byte) action {
 	acts := action_none
 	if len(payload) < 4 {
@@ -35,7 +30,7 @@ func handleHandshake(conn *TLSConn, payload []byte) action {
 
 func handleHandshakeCipherText(conn *TLSConn, hdr []byte, payload []byte) action {
 	acts := action_none
-	plain := decryptHandshakeCipherText(conn, hdr, payload)
+	plain := conn.decryptRecord(hdr, payload)
 	for len(plain) != 0 && plain[len(plain)-1] == '\000' {
 		plain = plain[:len(plain)-1]
 	}
@@ -49,37 +44,12 @@ func handleHandshakeCipherText(conn *TLSConn, hdr []byte, payload []byte) action
 			len := readNum(24, plain[1:])
 			payload := plain[:4+len]
 			plain = plain[4+len:]
-			acts |= handleHSRecord(conn, int(overallType), hdr, payload)
+			acts |= conn.handleHSRecord(int(overallType), hdr, payload)
 		}
-	case kREC_TYPE_ALERT:
-		handleHSRecord(conn, int(overallType), hdr, plain)
 	default:
-		panic("unexpected ciphered type")
+		acts |= conn.handleHSRecord(int(overallType), hdr, plain)
 	}
 	return acts
-}
-
-func decryptHandshakeCipherText(conn *TLSConn, hdr []byte, payload []byte) []byte {
-	cipher := aes.New128(conn.serverWriteKey[:])
-	ciphertext := payload[:len(payload)-gcm.TagLength]
-	iv := buildIV(conn.serverSeq, conn.serverWriteIV[:])
-	adata := hdr
-	tag := payload[len(payload)-gcm.TagLength:]
-
-	plain, failed := gcm.Decrypt(cipher, iv, ciphertext, adata, tag)
-	if failed {
-		panic("decrypt failed")
-	}
-	return plain
-}
-
-func buildIV(seq uint64, base []byte) []byte {
-	result := make([]byte, len(base))
-	copy(result, base)
-	for i := 0; i < 8; i++ {
-		result[len(result)-i-1] ^= byte(seq >> uint(8*i))
-	}
-	return result
 }
 
 func readNum(bits int, b []byte) uint {

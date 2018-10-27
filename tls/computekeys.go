@@ -38,6 +38,13 @@ func computeServerApplicationKeys(conn *TLSConn) {
 	conn.serverSeq = 0
 }
 
+func computeClientApplicationKeys(conn *TLSConn) {
+	csecret := conn.clientApplicationTrafficSecret[:]
+	copy(conn.clientWriteKey[:], hkdfExpandLabel(csecret, "key", []byte{}, len(conn.clientWriteKey)))
+	copy(conn.clientWriteIV[:], hkdfExpandLabel(csecret, "iv", []byte{}, len(conn.clientWriteIV)))
+	conn.clientSeq = 0
+}
+
 func hkdfExpandLabel(secret []byte, label string, context []byte, length int) []byte {
 	hkdflabel := make([]byte, 0)
 	hkdflabel = append(hkdflabel, byte(length>>8))
