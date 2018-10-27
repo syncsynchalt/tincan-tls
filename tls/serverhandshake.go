@@ -22,6 +22,8 @@ func handleHandshake(conn *TLSConn, payload []byte) action {
 		acts = handleServerCertificateVerify(conn, payload)
 	case kHS_TYPE_FINISHED:
 		acts = handleServerFinished(conn, payload)
+	case kHS_TYPE_NEW_SESSION_TICKET:
+		acts = handleNewSessionTicket(conn, payload)
 	default:
 		panic("handshake type not handled")
 	}
@@ -146,6 +148,11 @@ func handleServerCertificate(conn *TLSConn, payload []byte) action {
 
 func handleServerCertificateVerify(conn *TLSConn, payload []byte) action {
 	// x509 authentication is outside the spec of this barest-minimal connection
+	return action_none
+}
+
+func handleNewSessionTicket(conn *TLSConn, payload []byte) action {
+	// ignored as we don't support session resume
 	return action_none
 }
 

@@ -25,6 +25,7 @@ var (
 
 	kHS_TYPE_CLIENT_HELLO         = byte(1)
 	kHS_TYPE_SERVER_HELLO         = byte(2)
+	kHS_TYPE_NEW_SESSION_TICKET   = byte(4)
 	kHS_TYPE_ENCRYPTED_EXTENSIONS = byte(8)
 	kHS_TYPE_CERTIFICATE          = byte(11)
 	kHS_TYPE_CERTIFICATE_VERIFY   = byte(15)
