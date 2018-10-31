@@ -150,3 +150,46 @@ func TestServerApplicationKeys(t *testing.T) {
 	equals(t, expectClientWriteKey, conn.clientWriteKey[:])
 	equals(t, expectClientWriteIV, conn.clientWriteIV[:])
 }
+
+func TestIllustratedHSKeys(t *testing.T) {
+	conn := &TLSConn{}
+	clientHello := hexBytes(`010000c20303000102030405060708090a0b0c0d0e0f101112
+131415161718191a1b1c1d1e1f20e0e1e2e3e4e5e6e7e8e9eaebecedeeef
+f0f1f2f3f4f5f6f7f8f9fafbfcfdfeff0006130113021303010000730000
+001800160000136578616d706c652e756c666865696d2e6e6574000a0004
+0002001d000d001400120403080404010503080505010806060102010033
+00260024001d0020358072d6365880d1aeea329adf9121383851ed21a28e
+3b75e965d0d2cd166254002d00020101002b0003020304`)
+	serverHello := hexBytes(`020000760303707172737475767778797a7b7c7d7e7f808182
+838485868788898a8b8c8d8e8f20e0e1e2e3e4e5e6e7e8e9eaebecedeeef
+f0f1f2f3f4f5f6f7f8f9fafbfcfdfeff130100002e00330024001d00209f
+d7ad6dcff4298dd3f96d5b1b2af910a0535b1488d7f8fabb349a982880b6
+15002b00020304`)
+	conn.addToTranscript(clientHello)
+	conn.addToTranscript(serverHello)
+
+	clientPriv := hexBytes(`202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f`)
+	serverPub := hexBytes(`9fd7ad6dcff4298dd3f96d5b1b2af910a0535b1488d7f8fabb349a982880b615`)
+	copy(conn.clientPrivKey[:], clientPriv)
+	copy(conn.serverPubKey[:], serverPub)
+
+	computeHandshakeKeys(conn)
+
+	expectClient := hexBytes(`66afa331b2e837d9ee285c12047b0a80a757f917ddbfa873e1abc579da297401`)
+	equals(t, expectClient, conn.clientHandshakeTrafficSecret[:])
+
+	expectServer := hexBytes(`a56045661f3bfed8ff504c40d0c49a6cb82aebfa185eb7f52f2a915b5a292754`)
+	equals(t, expectServer, conn.serverHandshakeTrafficSecret[:])
+
+	expectMaster := hexBytes(`7f2882bb9b9a46265941653e9c2f19067118151e21d12e57a7b6aca1f8150c8d`)
+	equals(t, expectMaster, conn.masterSecret[:])
+
+	expectCHKey := hexBytes(`bd75f8a10bf81727cba7b7930f2d2d08`)
+	expectCHIV := hexBytes(`80852b60fb8bf887aa6a22d1`)
+	equals(t, expectCHKey, conn.clientWriteKey[:])
+	equals(t, expectCHIV, conn.clientWriteIV[:])
+	expectSHKey := hexBytes(`b567abf4246f473edad4efd363c5c8ad`)
+	expectSHIV := hexBytes(`99dc72e32ed29ca25ffe44a5`)
+	equals(t, expectSHKey, conn.serverWriteKey[:])
+	equals(t, expectSHIV, conn.serverWriteIV[:])
+}
